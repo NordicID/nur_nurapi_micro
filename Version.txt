@@ -1,0 +1,18 @@
+Version 4
+---------
+Re-organized sources.
+Add possibility for single module setup parameters.
+
+Version 3
+---------
+Added module setup test.
+
+Version 2
+---------
+Added unaligned structure member access
+Added GCC makefile for Windows.
+
+Version 1
+---------
+Basic functionality
+Win32 console sample.

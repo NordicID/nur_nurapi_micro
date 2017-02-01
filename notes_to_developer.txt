@@ -1,0 +1,40 @@
+Some variable size related terms:
+
+BYTE	unsigned 8-bit	(1 byte, unsigned char, uint8_t), signed is 'char'
+WORD	unsigned 16-bi	(2 bytes, unsigned short, uint16_t), signed is 'short'
+DWORD	unsigned 32-bit	(4 bytes, unsigned int/unsigned long, uint32_t), signed is 'int' OR 'long' depending on the architecture and compiler
+QWORD	unsigned 64-bit	(8 bytes, unsigned long long/unsigned __int64, uint64_t), signed is 'long long' or __int64
+
+Notes
+-------
+
+Getting a WORD or DWORD from byte buffer: if your MCU design allows unaligned memory accesses to 2-, 4- or 8-byte variables it is probably a good idea to handle the command parameters in packed structures ir order to make the code more readable.
+
+As of writing this, the module FW does not yet support single tag fetching from the modules's buffer. Best workaround for this is likely to use low Q value (e.g. 2 or 3) and higher session value (2 or 3) to keep the amount of read data smaller and thus helping the MCU memory handling.
+
+The NurApiConfig.h defines the inclusion, exclusion and implementation of certain functions e.g. "nurMemcpy" or "nurStrncpy".
+
+
+What to implement:
+-----------------
+
+struct NUR_API_HANDLE transport functions:
+TransportReadDataFunction
+TransportReadDataFunction
+
+See the API structure in the NurMicroApi.h: 'struct NUR_API_HANDLE'. The API structure contains the transport read and write functions.
+
+See SerialTransport for win32 example.
+
+
+NUR unsolicited notifications:
+--------------------------------
+
+struct NUR_API_HANDLE event handler function:
+UnsolEventHandler
+
+You can call NurApiWaitEvent() to wait for unsolicited notifications.
+Event handler will be called when notification is received.
+
+NOTE: It is recommended not to use streaming functions with micro api.
+
