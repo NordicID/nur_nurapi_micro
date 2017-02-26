@@ -1,18 +1,15 @@
 /* 
-  Copyright © 2001-2008 Nordic ID 
-  NORDIC ID DEMO SOFTWARE DISCLAIMER
+	Copyright (c) 2017 Nordic ID.
 
-  You are about to use Nordic ID Demo Software ("Software"). 
-  It is explicitly stated that Nordic ID does not give any kind of warranties, 
-  expressed or implied, for this Software. Software is provided "as is" and with 
-  all faults. Under no circumstances is Nordic ID liable for any direct, special, 
-  incidental or indirect damages or for any economic consequential damages to you 
-  or to any third party.
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), 
+	to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+	and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-  The use of this software indicates your complete and unconditional understanding 
-  of the terms of this disclaimer. 
-  
-  IF YOU DO NOT AGREE OF THE TERMS OF THIS DISCLAIMER, DO NOT USE THE SOFTWARE.  
+	The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
+	WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #ifndef _NURMICROAPI_H_
@@ -33,13 +30,24 @@
 	#include <Windows.h>
 	typedef ULONGLONG QWORD;
 #else
-	typedef unsigned long long ULONGLONG;
-	typedef unsigned long long QWORD;
-	typedef unsigned long ULONG;
-	typedef unsigned int DWORD;
-	typedef unsigned short WORD;
-	typedef unsigned char BYTE;
-	typedef unsigned int BOOL;
+	#include <stdint.h>
+	typedef uint64_t ULONGLONG;
+	typedef uint64_t QWORD;
+	typedef uint32_t ULONG;
+	typedef uint32_t DWORD;
+	typedef uint16_t WORD;
+	typedef uint8_t BYTE;
+	typedef int32_t BOOL;
+	/*
+	// If stdint.h is not available, make these to match your platform
+	typedef unsigned long long ULONGLONG; // 64bit unsigned
+	typedef unsigned long long QWORD;	  // 64bit unsigned
+	typedef unsigned long ULONG;		  // 32bit unsigned
+	typedef unsigned int DWORD;			  // 32bit unsigned
+	typedef unsigned short WORD;		  // 16bit unsigned
+	typedef unsigned char BYTE;			  // 8bit unsigned
+	typedef unsigned int BOOL;			  // 8 - 32bit (true/false) 
+	*/
 	typedef void * LPVOID;
 	#define TRUE 1
 	#define FALSE 0
@@ -151,10 +159,10 @@ enum NUR_BAUDRATE
  */
 enum NUR_LOG
 {
-	NUR_LOG_VERBOSE = (1<<0),	/**< Verbose log. */
-	NUR_LOG_ERROR = (1<<1),		/**< Error log. */
-	NUR_LOG_USER = (1<<2),		/**< User log. */
-	NUR_LOG_DATA = (1<<3),		/**< Data log. */
+	NUR_LOG_VERBOSE = (1L<<0),	/**< Verbose log. */
+	NUR_LOG_ERROR = (1L<<1),		/**< Error log. */
+	NUR_LOG_USER = (1L<<2),		/**< User log. */
+	NUR_LOG_DATA = (1L<<3),		/**< Data log. */
 	NUR_LOG_ALL = (NUR_LOG_VERBOSE | NUR_LOG_ERROR | NUR_LOG_USER | NUR_LOG_DATA) /**< All flags log combined. */
 };
 
@@ -241,11 +249,11 @@ enum NUR_LOCKACTION
  */
 enum NUR_LOCKMEM
 {
-	NUR_LOCK_USERMEM	= (1<<0),	/**< User memory bank lock mask. */
-	NUR_LOCK_TIDMEM		= (1<<1),	/**< TID memory bank lock mask. */
-	NUR_LOCK_EPCMEM		= (1<<2),	/**< EPC memory bank lock mask. */
-	NUR_LOCK_ACCESSPWD	= (1<<3),	/**< Access password memory lock mask. */
-	NUR_LOCK_KILLPWD	= (1<<4)	/**< Kill password memory lock mask. */
+	NUR_LOCK_USERMEM	= (1L<<0),	/**< User memory bank lock mask. */
+	NUR_LOCK_TIDMEM		= (1L<<1),	/**< TID memory bank lock mask. */
+	NUR_LOCK_EPCMEM		= (1L<<2),	/**< EPC memory bank lock mask. */
+	NUR_LOCK_ACCESSPWD	= (1L<<3),	/**< Access password memory lock mask. */
+	NUR_LOCK_KILLPWD	= (1L<<4)	/**< Kill password memory lock mask. */
 };
 
 /**
@@ -254,9 +262,9 @@ enum NUR_LOCKMEM
  */
 enum NUR_TRACETAG
 {
-	NUR_TRACETAG_NO_EPC				= (1<<0), /**< Do not transfer EPC back from trace tag function. */
-	NUR_TRACETAG_START_CONTINUOUS	= (1<<1), /**< Start continuous tag tracing. */
-	NUR_TRACETAG_STOP_CONTINUOUS	= (1<<3), /**< Stop continuous tag tracing. */
+	NUR_TRACETAG_NO_EPC				= (1L<<0), /**< Do not transfer EPC back from trace tag function. */
+	NUR_TRACETAG_START_CONTINUOUS	= (1L<<1), /**< Start continuous tag tracing. */
+	NUR_TRACETAG_STOP_CONTINUOUS	= (1L<<3), /**< Stop continuous tag tracing. */
 };
 
 /**
@@ -265,16 +273,16 @@ enum NUR_TRACETAG
  */
 enum NUR_CUSTXCHGFLAGS
 {
-	CXF_ASWRITE     = (1<<0),     /**< "Act if this was a write operation" */
-	CXF_USEHANDLE   = (1<<1),     /**< RN16 resulting from sinulation shall be appended to the bit stream */
-	CXF_XORRN16     = (1<<2),     /**< if CXF_ASWRITE == '1' and TX bit length == 16, XOR the TX data with RN16 received from the tag access. */
-	CXF_TXONLY      = (1<<3),     /**< Transmit only. No response is expected. */
-	CXF_NOTXCRC     = (1<<4),     /**< No TX CRC. */
-	CXF_NORXCRC     = (1<<5),     /**< Do not decode RX CRC, return the response as is. */
-	CXF_CRC5        = (1<<6),     /**< TX uses CRC-5 instead of CRC-16. */
-	CXF_NORXLEN     = (1<<7),     /**< Unknown RX length. RX length is ignored. */
-	CXF_STRIPHND    = (1<<8),		/**< Leave out the bacscattered handle in the response. */
-	CXF_SKIPRESEL   = (1<<9),     /**< Skip tag re-selection during the custom exchange. */
+	CXF_ASWRITE     = (1L<<0),     /**< "Act if this was a write operation" */
+	CXF_USEHANDLE   = (1L<<1),     /**< RN16 resulting from sinulation shall be appended to the bit stream */
+	CXF_XORRN16     = (1L<<2),     /**< if CXF_ASWRITE == '1' and TX bit length == 16, XOR the TX data with RN16 received from the tag access. */
+	CXF_TXONLY      = (1L<<3),     /**< Transmit only. No response is expected. */
+	CXF_NOTXCRC     = (1L<<4),     /**< No TX CRC. */
+	CXF_NORXCRC     = (1L<<5),     /**< Do not decode RX CRC, return the response as is. */
+	CXF_CRC5        = (1L<<6),     /**< TX uses CRC-5 instead of CRC-16. */
+	CXF_NORXLEN     = (1L<<7),     /**< Unknown RX length. RX length is ignored. */
+	CXF_STRIPHND    = (1L<<8),		/**< Leave out the bacscattered handle in the response. */
+	CXF_SKIPRESEL   = (1L<<9),     /**< Skip tag re-selection during the custom exchange. */
 };
 
 /**
@@ -398,10 +406,10 @@ enum NUR_ANTENNAID
  */
 enum NUR_ANTENNAMASK
 {
-	NUR_ANTENNAMASK_1 = (1<<NUR_ANTENNAID_1),	/**< Mask for antenna ID 1. */
-	NUR_ANTENNAMASK_2 = (1<<NUR_ANTENNAID_2),	/**< Mask for antenna ID 2. */
-	NUR_ANTENNAMASK_3 = (1<<NUR_ANTENNAID_3),	/**< Mask for antenna ID 3. */
-	NUR_ANTENNAMASK_4 = (1<<NUR_ANTENNAID_4),	/**< Mask for antenna ID 4. */
+	NUR_ANTENNAMASK_1 = (1L<<NUR_ANTENNAID_1),	/**< Mask for antenna ID 1. */
+	NUR_ANTENNAMASK_2 = (1L<<NUR_ANTENNAID_2),	/**< Mask for antenna ID 2. */
+	NUR_ANTENNAMASK_3 = (1L<<NUR_ANTENNAID_3),	/**< Mask for antenna ID 3. */
+	NUR_ANTENNAMASK_4 = (1L<<NUR_ANTENNAID_4),	/**< Mask for antenna ID 4. */
 	NUR_ANTENNAMASK_ALL = (NUR_ANTENNAMASK_1 | NUR_ANTENNAMASK_2 | NUR_ANTENNAMASK_3 | NUR_ANTENNAMASK_4) /**< All antenna mask ids combined. */
 };
 
@@ -423,31 +431,31 @@ enum NUR_AUTOPERIOD
  */
 enum NUR_MODULESETUP_FLAGS
 {
-	NUR_SETUP_LINKFREQ		= (1<<0),	/**< linkFreq field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_RXDEC			= (1<<1),	/**< rxDecoding field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_TXLEVEL		= (1<<2),	/**< txLevel field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_TXMOD			= (1<<3),	/**< txModulation field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_REGION		= (1<<4),	/**< regionId field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_INVQ			= (1<<5),	/**< inventoryQ field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_INVSESSION	= (1<<6),	/**< inventorySession field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_INVROUNDS		= (1<<7),	/**< inventoryRounds field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_ANTMASK		= (1<<8),	/**< antennaMask field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_SCANSINGLETO	= (1<<9),	/**< scanSingleTriggerTimeout field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_INVENTORYTO	= (1<<10),	/**< inventoryTriggerTimeout field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_SELECTEDANT	= (1<<11),	/**< selectedAntenna field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_OPFLAGS		= (1<<12),	/**< opFlags field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_INVTARGET		= (1<<13),	/**< inventoryTarget field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_INVEPCLEN		= (1<<14),	/**< inventoryEpcLength field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_READRSSIFILTER	= (1<<15), /**< readRssiFilter field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_WRITERSSIFILTER	= (1<<16), /**< writeRssiFilter field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_INVRSSIFILTER = (1<<17), /**< inventoryRssiFilter field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_READTIMEOUT	= (1<<18), /**< readTO field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_WRITETIMEOUT	= (1<<19), /**< writeTO field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_LOCKTIMEOUT	= (1<<20), /**< lockTO field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_KILLTIMEOUT	= (1<<21), /**< killTO field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_AUTOPERIOD	= (1<<22), /**< stixPeriod field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_PERANTPOWER	= (1<<23), /**< antPower field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_PERANTOFFSET	= (1<<24), /**< powerOffset field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_LINKFREQ		= (1L<<0),	/**< linkFreq field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_RXDEC			= (1L<<1),	/**< rxDecoding field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_TXLEVEL		= (1L<<2),	/**< txLevel field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_TXMOD			= (1L<<3),	/**< txModulation field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_REGION		= (1L<<4),	/**< regionId field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_INVQ			= (1L<<5),	/**< inventoryQ field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_INVSESSION	= (1L<<6),	/**< inventorySession field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_INVROUNDS		= (1L<<7),	/**< inventoryRounds field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_ANTMASK		= (1L<<8),	/**< antennaMask field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_SCANSINGLETO	= (1L<<9),	/**< scanSingleTriggerTimeout field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_INVENTORYTO	= (1L<<10),	/**< inventoryTriggerTimeout field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_SELECTEDANT	= (1L<<11),	/**< selectedAntenna field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_OPFLAGS		= (1L<<12),	/**< opFlags field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_INVTARGET		= (1L<<13),	/**< inventoryTarget field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_INVEPCLEN		= (1L<<14),	/**< inventoryEpcLength field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_READRSSIFILTER	= (1L<<15), /**< readRssiFilter field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_WRITERSSIFILTER	= (1L<<16), /**< writeRssiFilter field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_INVRSSIFILTER = (1L<<17), /**< inventoryRssiFilter field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_READTIMEOUT	= (1L<<18), /**< readTO field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_WRITETIMEOUT	= (1L<<19), /**< writeTO field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_LOCKTIMEOUT	= (1L<<20), /**< lockTO field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_KILLTIMEOUT	= (1L<<21), /**< killTO field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_AUTOPERIOD	= (1L<<22), /**< stixPeriod field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_PERANTPOWER	= (1L<<23), /**< antPower field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_PERANTOFFSET	= (1L<<24), /**< powerOffset field in struct NUR_MODULESETUP is valid */
 
 	NUR_SETUP_ALL		= (NUR_SETUP_LINKFREQ | NUR_SETUP_RXDEC | NUR_SETUP_TXLEVEL | NUR_SETUP_TXMOD | NUR_SETUP_REGION |
 							NUR_SETUP_INVQ | NUR_SETUP_INVSESSION | NUR_SETUP_INVROUNDS | NUR_SETUP_ANTMASK |
@@ -517,20 +525,20 @@ enum NUR_IRTYPE
  */
 enum NUR_OPFLAGS
 {
-	NUR_OPFLAGS_EN_HOPEVENTS = (1<<0),		/**< Notification NUR_NOTIFICATION_HOPEVENT is enabled. */
-	NUR_OPFLAGS_INVSTREAM_ZEROS = (1<<1),	/**< Inventory stream frunction will report zero count inventory rounds also. */
-	NUR_OPFLAGS_INVENTORY_TID = (1<<2),
-	NUR_OPFLAGS_INVENTORY_READ = (1<<3),
+	NUR_OPFLAGS_EN_HOPEVENTS = (1L<<0),		/**< Notification NUR_NOTIFICATION_HOPEVENT is enabled. */
+	NUR_OPFLAGS_INVSTREAM_ZEROS = (1L<<1),	/**< Inventory stream frunction will report zero count inventory rounds also. */
+	NUR_OPFLAGS_INVENTORY_TID = (1L<<2),
+	NUR_OPFLAGS_INVENTORY_READ = (1L<<3),
 	/* Keyboard : scan single -> key presses */
-	NUR_OPFLAGS_SCANSINGLE_KBD	= (1<<4),
-	NUR_OPFLAGS_STANDALONE_APP1	= (1<<5),
-	NUR_OPFLAGS_STANDALONE_APP2	= (1<<6),
-	NUR_OPFLAGS_EXTIN_EVENTS 	= (1<<7),
+	NUR_OPFLAGS_SCANSINGLE_KBD	= (1L<<4),
+	NUR_OPFLAGS_STANDALONE_APP1	= (1L<<5),
+	NUR_OPFLAGS_STANDALONE_APP2	= (1L<<6),
+	NUR_OPFLAGS_EXTIN_EVENTS 	= (1L<<7),
 	// Ext out lines 0-3 can be set to predefined state after boot.
-	NUR_OPFLAGS_STATE_EXTOUT_0 	= (1<<8),
-	NUR_OPFLAGS_STATE_EXTOUT_1 	= (1<<9),
-	NUR_OPFLAGS_STATE_EXTOUT_2 	= (1<<10),
-	NUR_OPFLAGS_STATE_EXTOUT_3 	= (1<<11)
+	NUR_OPFLAGS_STATE_EXTOUT_0 	= (1L<<8),
+	NUR_OPFLAGS_STATE_EXTOUT_1 	= (1L<<9),
+	NUR_OPFLAGS_STATE_EXTOUT_2 	= (1L<<10),
+	NUR_OPFLAGS_STATE_EXTOUT_3 	= (1L<<11)
 };
 
 /**
@@ -539,10 +547,10 @@ enum NUR_OPFLAGS
  */
 enum NUR_STORE_FLAGS
 {
-	NUR_STORE_RF = (1<<0),			/**< Store RF settings */
-	NUR_STORE_GPIO = (1<<1),		/**< Store GPIO/Sensor settings */
-	NUR_STORE_BAUDRATE = (1<<2),	/**< Store Baudrate setting */
-	NUR_STORE_OPFLAGS = (1<<3),		/**< Store OpFlags setting */
+	NUR_STORE_RF = (1L<<0),			/**< Store RF settings */
+	NUR_STORE_GPIO = (1L<<1),		/**< Store GPIO/Sensor settings */
+	NUR_STORE_BAUDRATE = (1L<<2),	/**< Store Baudrate setting */
+	NUR_STORE_OPFLAGS = (1L<<3),		/**< Store OpFlags setting */
 	NUR_STORE_ALL = (NUR_STORE_RF | NUR_STORE_GPIO | NUR_STORE_BAUDRATE | NUR_STORE_OPFLAGS) /**< Store all settings */
 };
 
@@ -553,14 +561,14 @@ enum NUR_STORE_FLAGS
  */
 enum NUR_CUSTHOP_ERROR
 {
-	NUR_CHERR_COUNT = (1<<0),
-	NUR_CHERR_CHTIME = (1<<1),
-	NUR_CHERR_PAUSETIME = (1<<2),
-	NUR_CHERR_LF = (1<<3),
-	NUR_CHERR_TARI = (1<<4),
-	NUR_CHERR_SIZE = (1<<5),
-	NUR_CHERR_FREQ = (1<<6),
-	NUR_CHERR_TXLIMIT = (1<<7)
+	NUR_CHERR_COUNT = (1L<<0),
+	NUR_CHERR_CHTIME = (1L<<1),
+	NUR_CHERR_PAUSETIME = (1L<<2),
+	NUR_CHERR_LF = (1L<<3),
+	NUR_CHERR_TARI = (1L<<4),
+	NUR_CHERR_SIZE = (1L<<5),
+	NUR_CHERR_FREQ = (1L<<6),
+	NUR_CHERR_TXLIMIT = (1L<<7)
 };
 
 /**
@@ -584,27 +592,27 @@ enum NUR_BINFILEFORMAT
  */
 enum NUR_DEVCAPS_F1
 {
-	NUR_DC_RXDECFM0		= (1<<0),	/**< RX modulation FM0. */
-	NUR_DC_RXDECM2		= (1<<1), 	/**< RX modulation Miller-2. */
-	NUR_DC_RXDECM4		= (1<<2), 	/**< RX modulation Miller-4. */
-	NUR_DC_RXDECM8		= (1<<3), 	/**< RX modulation Miller-8. */
+	NUR_DC_RXDECFM0		= (1L<<0),	/**< RX modulation FM0. */
+	NUR_DC_RXDECM2		= (1L<<1), 	/**< RX modulation Miller-2. */
+	NUR_DC_RXDECM4		= (1L<<2), 	/**< RX modulation Miller-4. */
+	NUR_DC_RXDECM8		= (1L<<3), 	/**< RX modulation Miller-8. */
 
-	NUR_DC_RXLF40k		= (1<<4), 	/**< Backscatter LF of 40kHz. */
-	NUR_DC_RXLF80k		= (1<<5), 	/**< Backscatter LF of 80kHz. */
-	NUR_DC_RXLF160k		= (1<<6), 	/**< Backscatter LF of 160kHz. */
-	NUR_DC_RXLF256k		= (1<<7), 	/**< Backscatter LF of 256kHz. */
-	NUR_DC_RXLF320k		= (1<<8), 	/**< Backscatter LF of 320kHz. */
-	NUR_DC_RXLF640k		= (1<<9), 	/**< Backscatter LF of 640kHz. */
-	NUR_DC_RXLFres1		= (1<<10), 	/**< Reserved LF 1. */
-	NUR_DC_RXLFres2		= (1<<11), 	/**< Reserved LF 2. */
+	NUR_DC_RXLF40k		= (1L<<4), 	/**< Backscatter LF of 40kHz. */
+	NUR_DC_RXLF80k		= (1L<<5), 	/**< Backscatter LF of 80kHz. */
+	NUR_DC_RXLF160k		= (1L<<6), 	/**< Backscatter LF of 160kHz. */
+	NUR_DC_RXLF256k		= (1L<<7), 	/**< Backscatter LF of 256kHz. */
+	NUR_DC_RXLF320k		= (1L<<8), 	/**< Backscatter LF of 320kHz. */
+	NUR_DC_RXLF640k		= (1L<<9), 	/**< Backscatter LF of 640kHz. */
+	NUR_DC_RXLFres1		= (1L<<10), 	/**< Reserved LF 1. */
+	NUR_DC_RXLFres2		= (1L<<11), 	/**< Reserved LF 2. */
 
-	NUR_DC_HASBEEP		= (1<<12), 	/**< The device has beeper available. */
-	NUR_DC_HASLIGHT		= (1<<13), 	/**< The device has light sensor available. */
-	NUR_DC_HASTAP		= (1<<14), 	/**< The device has tap sensor available. */
-	NUR_DC_ANTTUNE		= (1<<15), 	/**< The antenna or antennas in this device can be tuned. */
-	NUR_DC_CHSCANNER	= (1<<16),	/**< This module can run channel scan. */
-	NUR_DC_INVREAD		= (1<<17),	/**< This module can run inventory + read. */
-	NUR_DC_LASTBITF1	= (1<<18)	/**< Next available bi for future extensions. */
+	NUR_DC_HASBEEP		= (1L<<12), 	/**< The device has beeper available. */
+	NUR_DC_HASLIGHT		= (1L<<13), 	/**< The device has light sensor available. */
+	NUR_DC_HASTAP		= (1L<<14), 	/**< The device has tap sensor available. */
+	NUR_DC_ANTTUNE		= (1L<<15), 	/**< The antenna or antennas in this device can be tuned. */
+	NUR_DC_CHSCANNER	= (1L<<16),	/**< This module can run channel scan. */
+	NUR_DC_INVREAD		= (1L<<17),	/**< This module can run inventory + read. */
+	NUR_DC_LASTBITF1	= (1L<<18)	/**< Next available bi for future extensions. */
 };
 
 /** Flag field 1 'all device caps' bitmask. */

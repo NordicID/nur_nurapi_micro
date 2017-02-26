@@ -1,18 +1,15 @@
 /* 
-  Copyright © 2014 Nordic ID 
-  NORDIC ID DEMO SOFTWARE DISCLAIMER
+	Copyright (c) 2017 Nordic ID.
 
-  You are about to use Nordic ID Demo Software ("Software"). 
-  It is explicitly stated that Nordic ID does not give any kind of warranties, 
-  expressed or implied, for this Software. Software is provided "as is" and with 
-  all faults. Under no circumstances is Nordic ID liable for any direct, special, 
-  incidental or indirect damages or for any economic consequential damages to you 
-  or to any third party.
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), 
+	to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+	and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-  The use of this software indicates your complete and unconditional understanding 
-  of the terms of this disclaimer. 
-  
-  IF YOU DO NOT AGREE OF THE TERMS OF THIS DISCLAIMER, DO NOT USE THE SOFTWARE.  
+	The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
+	WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #ifndef _NURPROTOCOL_H_
@@ -917,8 +914,8 @@ struct NUR_CMD_RESP
 }
 
 #define PacketWordPos(Buf, w, Pos) { \
-	(Buf)[(Pos)+1] = (BYTE)(((w)>>8) & 0xFF); \
-	(Buf)[(Pos)+0] = (BYTE)((w) & 0xFF); \
+	(Buf)[(Pos)+1] = (BYTE)(((WORD)(w)>>8) & 0xFF); \
+	(Buf)[(Pos)+0] = (BYTE)((WORD)(w) & 0xFF); \
 }
 
 #define PacketWord(Buf, w, Ptr) { \
@@ -927,10 +924,10 @@ struct NUR_CMD_RESP
 }
 
 #define PacketDwordPos(Buf, dw, Pos) { \
-	(Buf)[(Pos)+3] = (BYTE)(((dw)>>24) & 0xFF); \
-	(Buf)[(Pos)+2] = (BYTE)(((dw)>>16) & 0xFF); \
-	(Buf)[(Pos)+1] = (BYTE)(((dw)>>8) & 0xFF); \
-	(Buf)[(Pos)+0] = (BYTE)((dw) & 0xFF); \
+	(Buf)[(Pos)+3] = (BYTE)(((DWORD)(dw)>>24) & 0xFF); \
+	(Buf)[(Pos)+2] = (BYTE)(((DWORD)(dw)>>16) & 0xFF); \
+	(Buf)[(Pos)+1] = (BYTE)(((DWORD)(dw)>>8) & 0xFF); \
+	(Buf)[(Pos)+0] = (BYTE)((DWORD)(dw) & 0xFF); \
 }
 
 #define PacketDword(Buf, dw, Ptr) { \
@@ -942,14 +939,14 @@ struct NUR_CMD_RESP
 #define PacketShort PacketWord
 
 #define PacketQwordPos(Buf, ull, Pos) { \
-	(Buf)[(Pos)+7] = (BYTE)(((ull)>>56) & 0xFF); \
-	(Buf)[(Pos)+6] = (BYTE)(((ull)>>48) & 0xFF); \
-	(Buf)[(Pos)+5] = (BYTE)(((ull)>>40) & 0xFF); \
-	(Buf)[(Pos)+4] = (BYTE)(((ull)>>32) & 0xFF); \
-	(Buf)[(Pos)+3] = (BYTE)(((ull)>>24) & 0xFF); \
-	(Buf)[(Pos)+2] = (BYTE)(((ull)>>16) & 0xFF); \
-	(Buf)[(Pos)+1] = (BYTE)(((ull)>>8) & 0xFF); \
-	(Buf)[(Pos)+0] = (BYTE)((ull) & 0xFF); \
+	(Buf)[(Pos)+7] = (BYTE)(((QWORD)(ull)>>56) & 0xFF); \
+	(Buf)[(Pos)+6] = (BYTE)(((QWORD)(ull)>>48) & 0xFF); \
+	(Buf)[(Pos)+5] = (BYTE)(((QWORD)(ull)>>40) & 0xFF); \
+	(Buf)[(Pos)+4] = (BYTE)(((QWORD)(ull)>>32) & 0xFF); \
+	(Buf)[(Pos)+3] = (BYTE)(((QWORD)(ull)>>24) & 0xFF); \
+	(Buf)[(Pos)+2] = (BYTE)(((QWORD)(ull)>>16) & 0xFF); \
+	(Buf)[(Pos)+1] = (BYTE)(((QWORD)(ull)>>8) & 0xFF); \
+	(Buf)[(Pos)+0] = (BYTE)((QWORD)(ull) & 0xFF); \
 }
 
 #define PacketQword(Buf, ull, Ptr) { \
