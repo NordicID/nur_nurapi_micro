@@ -4,7 +4,7 @@ This library allows an Arduino board with UART capabilites to use Nordic ID NUR 
 You need to include "NurMicroApi.h" in your sketch.
 
 For more information about this library please visit us at
-http://www.arduino.cc/en/Reference/Keyboard
+https://github.com/NordicID/nur_nurapi_micro
 
 == License ==
 
