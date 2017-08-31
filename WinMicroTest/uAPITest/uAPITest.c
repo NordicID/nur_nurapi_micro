@@ -198,11 +198,11 @@ static char *RxDecToStr(int rxd)
 		case 1:
 		case 2:
 		case 3: 
-		sprintf(buf, "M-%d", (1<<rxd));
-		break;
+			sprintf(buf, "M-%d", (1<<rxd));
+			break;
 		default:
-		sprintf(buf, "unknown RX decoding (%d)", rxd);
-		break;
+			sprintf(buf, "unknown RX decoding (%d)", rxd);
+			break;
 	}
 
 	return buf;
@@ -281,10 +281,96 @@ int FetchTagsFunction(struct NUR_API_HANDLE *hNurApi, struct NUR_IDBUFFER_ENTRY 
 	return NUR_SUCCESS; // non-zero terminates tag buffer parsing
 }
 
+// Perform inventory using NurApiInventoryEx() and select tag population based on EPC mask.
+// epcMask:				EPC filter, beginning of the EPC code
+// epcMaskByteLen:		Length of the supplied epcMask in bytes
+// Example:
+// BYTE epcMask[] = { 0xAB, 0xCD }; // Select tags EPC starting with "ABCD"
+// handle_inventoryex_epcmask(epcMask, sizeof(epcMask));
+static void handle_inventoryex_epcmask(BYTE *epcMask, int epcMaskByteLen)
+{
+	int rc, n;
+	
+	struct NUR_CMD_INVENTORYEX_PARAMS params;
+
+	if (!gConnected)
+		return;
+
+	cls();
+	printf("* InventoryEx *\n");
+
+	// Clear tag buffer
+	rc = NurApiClearTags(hApi);
+	if (rc == NUR_SUCCESS) 
+	{
+		if (epcMask && epcMaskByteLen > 0)
+		{
+			printf("EPC Filter: ");
+			for (n=0; n<epcMaskByteLen; n++)
+			{
+				printf("%02X", epcMask[n]);
+			}
+			printf("\n");
+
+			// Setup InventoryEx params
+			params.inventorySelState = NUR_SELSTATE_SL; // Only tags with SL asserted responds
+			params.inventoryTarget = NUR_INVTARGET_A;   // Query tags with inventoried flag set to A
+			params.Q = 0;								// Auto Q
+			params.rounds = 0;							// Auto Rounds
+			params.session = NUR_SESSION_S0;			// Session 0
+			params.transitTime = 0;						// No transit time
+			params.flags = 0;							// No flags, single inventory
+			// Setup filters
+			params.filterCount = 1;
+			params.filters[0].action = NUR_FACTION_0;	// Matching tags: assert SL or inventoried session flag -> A. Non-matching: deassert SL or inventoried session flag -> B.
+			params.filters[0].address = 32;				// Bit address to start of EPC. EPC starts after CRC + PC words
+			params.filters[0].bank = NUR_BANK_EPC;		// EPC bank
+			params.filters[0].maskbitlen = epcMaskByteLen * 8; // Set bit length
+			memcpy(params.filters[0].maskdata, epcMask, epcMaskByteLen); // Copy EPC mask
+			params.filters[0].target = NUR_SESSION_SL;	// Set SL flag
+			params.filters[0].truncate = 0;				// Always 0
+
+			rc = NurApiInventoryEx(hApi, &params);
+		} else {
+			// No epcMask defined, just perform normal inventory
+			rc = NurApiInventory(hApi, NULL);
+		}
+		if (rc == NUR_SUCCESS) 
+		{
+			int tagCount;
+#if 1
+			// Fetch tags one by one (needs less memory)
+			int n;
+			tagCount = hApi->resp->inventory.numTagsMem;
+			for (n=0; n<tagCount; n++)
+			{
+				rc = NurApiFetchTagAt(hApi, TRUE, n, FetchTagsFunction);
+				if (rc != NUR_SUCCESS) {
+					break;
+				}
+			}
+#else
+			// Fetch all tags at once (needs more memory)
+			rc = NurApiFetchTags(hApi, TRUE, TRUE, &tagCount, FetchTagsFunction);
+#endif
+			printf("\nInventory done; total %d tags\n", tagCount);
+		}
+		else {
+			printf("Inventory error. Code = %d.\n", rc);
+		}
+	}
+	else
+	{
+		printf("ClearTags error. Code = %d.\n", rc);
+	}
+
+	wait_key();
+}
+
 static void handle_inventory()
 {
 	int rc;
-
+	
 	if (!gConnected)
 		return;
 
@@ -381,8 +467,9 @@ static void options()
 		printf("[4]\tReader info\n");		
 		printf("[5]\tGet setup\n");
 		printf("[6]\tInventory\n");
-		printf("[7]\tTune\n");
-		printf("[8]\tSet TX Level\n");
+		printf("[7]\tInventoryEx select SGTIN-96 tags only\n");
+		printf("[8]\tTune\n");
+		printf("[9]\tSet TX Level\n");
 	}
 	printf("\nESC\tExit\n");
 
@@ -407,8 +494,13 @@ static BOOL do_command()
 		case '4': handle_readerinfo(); break;		
 		case '5': handle_setup_get(); break;
 		case '6': handle_inventory(); break;
-		case '7': handle_tune(); break;
-		case '8': handle_setup_set_txlevel(); break;			
+		case '7': {
+			BYTE epcMask[] = { 0x30 }; // Select SGTIN-96 tags (EPC starting with "30")
+			handle_inventoryex_epcmask(epcMask, sizeof(epcMask));
+			break;
+		}
+		case '8': handle_tune(); break;
+		case '9': handle_setup_set_txlevel(); break;			
 
 		default: break;
 	}
