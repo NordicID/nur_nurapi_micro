@@ -12,3 +12,5 @@ It is meant to use with devices with limited resources, such as micro controller
 # NUR Low level protocol docs
 see [nur_sdk/Embedded MCU](https://github.com/NordicID/nur_sdk/tree/master/embedded)
 
+### License
+All source files in this repository is provided under terms specified in [LICENSE](LICENSE) file.
