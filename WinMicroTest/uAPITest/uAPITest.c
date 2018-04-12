@@ -51,6 +51,119 @@ static struct NUR_API_HANDLE gApi =
 
 static struct NUR_API_HANDLE *hApi = &gApi;
 
+static int NurApiEnsureMode(struct NUR_API_HANDLE *hNurApi, char desiredMode)
+{
+	int error;
+	int retries = 5;
+	char curMode = 'X';	
+	
+	// Get current mode
+	error = NurApiGetMode(hNurApi, &curMode);
+
+	if (curMode != desiredMode) {
+		printf("NurApiEnsureMode(%c) Switching mode from '%c' to '%c'\n", desiredMode, curMode, desiredMode);
+	}
+
+	while (retries-- > 0 && curMode != desiredMode) {
+		
+		// Attempt to switch mode
+		NurApiEnterBoot(hNurApi);
+
+		// NOTE: If this is USB device, you'll need to reconnect serial here!
+
+		// Wait for boot event (2 sec)
+		NurApiWaitEvent(hNurApi, 2000);
+
+		// Get current mode
+		error = NurApiGetMode(hNurApi, &curMode);
+	}
+
+	if (curMode != desiredMode) {
+		printf("NurApiEnsureMode(%c) ERROR (%d) Could not change mode to '%c', current mode '%c'\n", error, desiredMode, curMode);
+	}
+
+	//printf("NurApiEnsureMode(%c) DONE (%d); curMode %c\n", desiredMode, error, curMode);
+
+	return (curMode != desiredMode) ? NUR_ERROR_GENERAL : error;
+}
+
+static int ProgramProgressFunction(struct NUR_API_HANDLE *hNurApi, struct NUR_PRGPROGRESS_DATA *prg)
+{
+	if (prg->error != 0) {
+		// Programming error
+		printf("\nFATAL programming error: %d\n", prg->error);
+	}
+	else if (prg->curPage == -1) {
+		// Programming start
+		printf("\n");
+	} else if (prg->curPage == prg->totalPages) {
+		// Programming done
+		printf("\rProgramming 100 %% - SUCCESS\n");
+	} else {
+		printf("\rProgramming %d %%", prg->curPage * 100 / prg->totalPages);
+	}
+	return 0;
+}
+
+static int NurApiProgramFile(struct NUR_API_HANDLE *hNurApi, WORD startPage, BYTE validateCmd, const char *fname) 
+{
+	int error = 0;
+	FILE *fp;
+	BYTE *fileBuffer = NULL;
+	DWORD fileLen = 0;
+
+	printf("NurApiProgramFile(%s)\n", fname);
+
+	fp = fopen(fname, "rb");
+	if (fp == NULL) {
+		printf("NurApiProgramFile(%s), cannot open file\n", fname);
+		return NUR_ERROR_FILE_NOT_FOUND;
+	}
+
+	fseek(fp, 0, SEEK_END);
+	fileLen = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+
+	fileBuffer = (BYTE *) malloc(fileLen);
+	if (!fileBuffer) {
+		fclose(fp);
+		printf("NurApiProgramFile(%s), FATAL: file buffer ALLOCATION failed!\n", fname);
+		return NUR_ERROR_GENERAL;
+	}
+
+	if (fread(fileBuffer, sizeof(BYTE), fileLen, fp) != fileLen) {
+		fclose(fp);
+		printf("NurApiProgramFile(%s), FATAL: file buffer READ failed!\n", fname);
+		return NUR_ERROR_GENERAL;
+	}
+	fclose(fp);
+	
+	error = NurApiProgramBuffer(hApi, ProgramProgressFunction, startPage, validateCmd, fileBuffer, fileLen);
+
+	free(fileBuffer);
+	return error;
+}
+
+static int NurApiProgramAppFile(struct NUR_API_HANDLE *hNurApi, const char *fname) 
+{	
+	int error = NurApiEnsureMode(hNurApi, 'B');
+	if (error == NUR_SUCCESS)
+		error = NurApiProgramFile(hNurApi, NUR_APP_FIRST_PAGE, NUR_CMD_APPVALIDATE, fname);
+	if (error == NUR_SUCCESS)
+		error = NurApiEnsureMode(hNurApi, 'A');
+	return error;
+}
+
+static int NurApiProgramBootloaderFile(struct NUR_API_HANDLE *hNurApi, const char *fname) 
+{
+	int error = NurApiEnsureMode(hNurApi, 'B');
+	if (error == NUR_SUCCESS)
+		error = NurApiProgramFile(hNurApi, NUR_BL_FIRST_PAGE, NUR_CMD_BLVALIDATE, fname);
+	if (error == NUR_SUCCESS)
+		error = NurApiEnsureMode(hNurApi, 'A');
+	return error;	
+}
+
 int InitNurApiHandle(struct NUR_API_HANDLE *hApi)
 {
 	// Init RX buffer
@@ -103,14 +216,16 @@ static void handle_connection()
 	}
 }
 
-static void handle_versions()
+static void handle_versions(int doCls)
 {
 	struct NUR_CMD_VERSION_RESP *vr;
 	int rc;
 
 	if (!gConnected)
 		return;
-	cls();
+
+	if (doCls)
+		cls();
 
 	rc = NurApiGetVersions(hApi);
 	vr = &hApi->resp->versions;
@@ -453,15 +568,60 @@ static void handle_tune()
 	wait_key();
 }
 
+static void handle_app_update()
+{
+	cls();
+	printf("* Updating app (app_update.bin) *\n");
+
+	if (NurApiProgramAppFile(hApi, "app_update.bin") == NUR_SUCCESS)
+	{
+		printf("\n");
+		handle_versions(0);
+	}
+	else 
+	{
+		wait_key();
+	}
+}
+
+static void handle_switch_mode()
+{
+	int error;
+
+	cls();
+	printf("* Updating app (app_update.bin) *\n");
+
+
+	// Attempt to switch mode
+	error = NurApiEnterBoot(hApi);
+
+	// NOTE: If this is USB device, you'll need to reconnect serial here!
+
+	if (error) {
+		printf("Switch error: %d\n", error);	
+	} else {
+		printf("Mode switched, waiting for device boot\n");	
+		// Wait for boot event (2 sec)
+		NurApiWaitEvent(hApi, 2000);
+	}
+
+	wait_key();
+}
+
 static void options()
 {
 	if (gConnected)
-		printf("[1]\tDisconnect\n");
-	else
-		printf("[1]\tConnect\n");
-
-	if (gConnected)
 	{
+		char mode = 'X';
+		int error = NurApiGetMode(hApi, &mode);
+		if (error == NUR_SUCCESS) {
+			if (mode != 'A')
+				printf("WARNING: Device is not running in application mode. Press 's' to switch mode\n\n");
+		} else {
+			printf("WARNING: Could not get device mode, error %d\n\n", error);
+		}
+
+		printf("[1]\tDisconnect\n");
 		printf("[2]\tPing\n");
 		printf("[3]\tVersions\n");
 		printf("[4]\tReader info\n");		
@@ -470,6 +630,10 @@ static void options()
 		printf("[7]\tInventoryEx select SGTIN-96 tags only\n");
 		printf("[8]\tTune\n");
 		printf("[9]\tSet TX Level\n");
+		printf("[u]\tUpdate app (app_update.bin)\n");
+		printf("[s]\tSwitch device mode to '%c'\n", mode == 'A' ? 'B' : 'A');
+	} else {
+		printf("[1]\tConnect\n");
 	}
 	printf("\nESC\tExit\n");
 
@@ -490,7 +654,7 @@ static BOOL do_command()
 	{
 		case '1': handle_connection(); break;
 		case '2': handle_ping(); break;
-		case '3': handle_versions(); break;
+		case '3': handle_versions(1); break;
 		case '4': handle_readerinfo(); break;		
 		case '5': handle_setup_get(); break;
 		case '6': handle_inventory(); break;
@@ -501,6 +665,8 @@ static BOOL do_command()
 		}
 		case '8': handle_tune(); break;
 		case '9': handle_setup_set_txlevel(); break;			
+		case 'u': handle_app_update(); break;			
+		case 's': handle_switch_mode(); break;			
 
 		default: break;
 	}

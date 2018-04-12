@@ -862,6 +862,27 @@ int NURAPICONV NurApiGetGPIOConfig(struct NUR_API_HANDLE *hNurApi);
 int NURAPICONV NurApiSetGPIOStatus(struct NUR_API_HANDLE *hNurApi, int gpio, BOOL state);
 int NURAPICONV NurApiGetGPIOStatus(struct NUR_API_HANDLE *hNurApi, int gpio);
 
+int NURAPICONV NurApiGetMode(struct NUR_API_HANDLE *hNurApi, char *mode);
+int NURAPICONV NurApiModuleRestart(struct NUR_API_HANDLE *hNurApi);
+int NURAPICONV NurApiEnterBoot(struct NUR_API_HANDLE *hNurApi);
+
+#define NUR_APP_FIRST_PAGE ((64 * 1024) / NUR_FLASH_PAGE_SIZE)
+#define NUR_BL_FIRST_PAGE (0)
+
+struct NUR_PRGPROGRESS_DATA
+{
+	int error;			/**< Error code returned from page programming. */
+	int curPage;		/**< Current page, this is -1 in first notification before programming started. */
+	int totalPages;		/**< Total number of pages to program. */
+};
+
+/** Called while programming. Return 0 to continue, non-zero to stop programming */
+typedef int (*pProgramProgressFunction)(struct NUR_API_HANDLE *hNurApi, struct NUR_PRGPROGRESS_DATA *prg);
+
+int NURAPICONV NurApiProgramBuffer(struct NUR_API_HANDLE *hNurApi, pProgramProgressFunction prgFn, WORD startPage, BYTE validateCmd, BYTE *buffer, DWORD bufferLen);
+int NURAPICONV NurApiProgramApp(struct NUR_API_HANDLE *hNurApi, pProgramProgressFunction prgFn, BYTE *buffer, DWORD bufferLen);
+int NURAPICONV NurApiProgramBootloader(struct NUR_API_HANDLE *hNurApi, pProgramProgressFunction prgFn, BYTE *buffer, DWORD bufferLen);
+
 #ifndef IMPLEMENT_CRC16
 extern WORD NurCRC16(WORD crc, BYTE *buf, DWORD len);
 #endif
