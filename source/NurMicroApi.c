@@ -795,6 +795,16 @@ int NURAPICONV NurApiClearTags(struct NUR_API_HANDLE *hNurApi)
 	return NurApiXchPacket(hNurApi, NUR_CMD_CLEARIDBUF, 0, DEF_TIMEOUT);
 }
 
+int NURAPICONV NurApiSetExtCarrier(struct NUR_API_HANDLE *hNurApi, BOOL on)
+{
+	int error;
+	WORD payloadLen = 1;
+	TxPayloadDataPtr[0] = on;
+
+	error = NurApiXchPacket(hNurApi, NUR_CMD_CARRIER, payloadLen, DEF_TIMEOUT);
+	return error;
+}
+
 #define SZ_META_PREPEND_IR    12
 
 int NURAPICONV ParseIdBuffer(struct NUR_API_HANDLE *hNurApi, pFetchTagsFunction tagFunc, BYTE *buffer, DWORD bufferLen, BOOL includeMeta, BOOL includeIrData)
