@@ -364,6 +364,14 @@ struct NUR_CMD_INVENTORYEX_PARAMS
 	struct NUR_CMD_INVENTORYEX_FILTER filters[NUR_MAX_FILTERS];
 } NUR_PACKED;
 
+struct NUR_CMD_IRCONFIG_PARAMS
+{
+  BYTE active;
+  BYTE type;
+  BYTE bank;
+  DWORD wAddress;
+  BYTE wLength;
+};
 
 struct NUR_SINGULATIONBLOCK
 {
@@ -891,7 +899,8 @@ struct NUR_CMD_RESP
     	struct NUR_CMD_VERSION_RESP			versions;    	
     	struct NUR_SINGLETUNE_RESP			tuneres;
 		struct NUR_CMD_DEVCAPS_RESP			devcaps;		
-		
+		struct NUR_CMD_IRCONFIG_PARAMS		irconfig;
+
 		BYTE rawdata[1];
 	};
 } NUR_PACKED;

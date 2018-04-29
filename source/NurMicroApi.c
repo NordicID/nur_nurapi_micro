@@ -778,16 +778,42 @@ int NURAPICONV NurApiInventoryEx(struct NUR_API_HANDLE *hNurApi,
 {
 	WORD payloadSize = params ? sizeof(struct NUR_CMD_INVENTORYEX_PARAMS) : 0;
 	if (payloadSize > 0) {
+		int n;
 		WORD copySize = payloadSize - sizeof(params->filters);
 		nurMemcpy(TxPayloadDataPtr, params, copySize);
+		payloadSize = copySize;
 		
-		if (params->filterCount > 0) {
-			nurMemcpy(TxPayloadDataPtr + copySize, params->filters, params->filterCount*sizeof(struct NUR_CMD_INVENTORYEX_FILTER));
+		for (n=0; n<params->filterCount; n++)
+		{
+			copySize = 9; // "Header" size.
+			// Calculate filter bytes from bit length	
+			copySize += ((params->filters[n].maskbitlen / 8) + ((params->filters[n].maskbitlen % 8) != 0));
+			nurMemcpy(TxPayloadDataPtr + payloadSize, &params->filters[n], copySize);
+			payloadSize += copySize;
 		}
-			
-		payloadSize = copySize + (params->filterCount*sizeof(struct NUR_CMD_INVENTORYEX_FILTER));
 	}
 	return NurApiXchPacket(hNurApi, NUR_CMD_INVENTORYEX, payloadSize, DEF_LONG_TIMEOUT);	
+}
+
+NUR_API int NURAPICONV NurApiGetInventoryReadConfig(struct NUR_API_HANDLE *hNurApi)
+{
+	return NurApiXchPacket(hNurApi, NUR_CMD_INVENTORYREAD, 0, DEF_TIMEOUT);
+}
+
+int NURAPICONV NurApiSetInventoryReadConfig(struct NUR_API_HANDLE *hNurApi,
+											struct NUR_CMD_IRCONFIG_PARAMS *params)
+{
+	WORD payloadSize;
+	if (params->active) {
+		payloadSize = params ? sizeof(struct NUR_CMD_IRCONFIG_PARAMS) : 0;
+		if (payloadSize > 0) {
+			nurMemcpy(TxPayloadDataPtr, params, payloadSize);
+		}
+	} else {
+		payloadSize = 1;
+		TxPayloadDataPtr[0] = params->active;
+	}
+	return NurApiXchPacket(hNurApi, NUR_CMD_INVENTORYREAD, payloadSize, DEF_TIMEOUT);
 }
 
 int NURAPICONV NurApiClearTags(struct NUR_API_HANDLE *hNurApi)
@@ -798,10 +824,9 @@ int NURAPICONV NurApiClearTags(struct NUR_API_HANDLE *hNurApi)
 int NURAPICONV NurApiSetExtCarrier(struct NUR_API_HANDLE *hNurApi, BOOL on)
 {
 	int error;
-	WORD payloadLen = 1;
-	TxPayloadDataPtr[0] = on;
+	PacketDwordPos(TxPayloadDataPtr, on, 0);
 
-	error = NurApiXchPacket(hNurApi, NUR_CMD_CARRIER, payloadLen, DEF_TIMEOUT);
+	error = NurApiXchPacket(hNurApi, NUR_CMD_CARRIER, 4, DEF_TIMEOUT);
 	return error;
 }
 
@@ -938,6 +963,7 @@ int NURAPICONV NurApiTraceTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_TRA
 		RETLOGERROR(NUR_ERROR_INVALID_PARAMETER);
 	}
 
+	// BitLengthToByteLength
 	maskdataLen = ((params->maskbitlen / 8) + ((params->maskbitlen % 8) != 0));
 
 	PacketByte(payloadBuffer, params->flags, &payloadSize);

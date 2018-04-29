@@ -839,6 +839,11 @@ NUR_API int NURAPICONV NurApiInventory(struct NUR_API_HANDLE *hNurApi,
 							   struct NUR_CMD_INVENTORY_PARAMS *params);
 NUR_API int NURAPICONV NurApiInventoryEx(struct NUR_API_HANDLE *hNurApi,
 										struct NUR_CMD_INVENTORYEX_PARAMS *params);
+
+NUR_API int NURAPICONV NurApiGetInventoryReadConfig(struct NUR_API_HANDLE *hNurApi);
+NUR_API int NURAPICONV NurApiSetInventoryReadConfig(struct NUR_API_HANDLE *hNurApi,
+													struct NUR_CMD_CONFIGIR_PARAMS *params);
+
 NUR_API int NURAPICONV NurApiFetchTags(struct NUR_API_HANDLE *hNurApi, BOOL includeMeta, BOOL clearModuleTags, int *tagsReceived, pFetchTagsFunction tagFunc);
 NUR_API int NURAPICONV NurApiFetchTagAt(struct NUR_API_HANDLE *hNurApi, BOOL includeMeta, int tagNum, pFetchTagsFunction tagFunc);
 NUR_API int NURAPICONV NurApiClearTags(struct NUR_API_HANDLE *hNurApi);
