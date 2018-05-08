@@ -371,7 +371,7 @@ struct NUR_CMD_IRCONFIG_PARAMS
   BYTE bank;
   DWORD wAddress;
   BYTE wLength;
-};
+} NUR_PACKED;
 
 struct NUR_SINGULATIONBLOCK
 {
