@@ -533,6 +533,7 @@ static void handle_tune()
 {
 	int rc, ant, i;
 	int res[NR_TUNEBANDS];
+	struct NUR_CMD_LOADSETUP_PARAMS params;
 
 	if (!gConnected)
 		return;
@@ -559,12 +560,32 @@ static void handle_tune()
 		{
 			printf("Tune error. Code = %d.\n", rc);
 		}
+
+		if (rc == NUR_SUCCESS)
+		{
+			printf("Enablind AutoTone with -15 threshold\n");
+			params.flags = NUR_SETUP_AUTOTUNE;
+			params.autotune.mode = AUTOTUNE_MODE_ENABLE | AUTOTUNE_MODE_THRESHOLD_ENABLE;
+			params.autotune.threshold_dBm = -15;
+			rc = NurApiSetModuleSetup(hApi, &params);
+
+			if (rc == NUR_SUCCESS) {
+				printf("OK\n");
+			}
+			else
+			{
+				printf("SetModuleSetup error. Code = %d.\n", rc);
+				printf("Make sure that the module/firmware supports AutoTune feature\n");
+				printf("(FW 5.0-A or higher in L2 module)\n");
+			}
+		}
 	}
 	else 
 	{
 		printf("Invalid input\n");
 	}
 
+	printf("\n");
 	wait_key();
 }
 
@@ -628,7 +649,7 @@ static void options()
 		printf("[5]\tGet setup\n");
 		printf("[6]\tInventory\n");
 		printf("[7]\tInventoryEx select SGTIN-96 tags only\n");
-		printf("[8]\tTune\n");
+		printf("[8]\tTune antenna and enable Auto-Tune feature\n");
 		printf("[9]\tSet TX Level\n");
 		printf("[u]\tUpdate app (app_update.bin)\n");
 		printf("[s]\tSwitch device mode to '%c'\n", mode == 'A' ? 'B' : 'A');

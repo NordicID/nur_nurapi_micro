@@ -674,6 +674,10 @@ static void ParseModuleSetupResponse(struct NUR_API_HANDLE *hNurApi, DWORD flags
 	GETMEMBER(NUR_SETUP_AUTOPERIOD, periodSetup);
 	GETMEMBER(NUR_SETUP_PERANTPOWER, antPower);
 	GETMEMBER(NUR_SETUP_PERANTOFFSET, powerOffset);
+	GETMEMBER(NUR_SETUP_ANTMASKEX, antennaMaskEx);
+	GETMEMBER(NUR_SETUP_AUTOTUNE, autotune);
+	GETMEMBER(NUR_SETUP_PERANTPOWER_EX, antPowerEx);
+	GETMEMBER(NUR_SETUP_RXSENS, rxSensitivity);
 
 	// Copy response back to main response struct
 	nurMemcpy(&hNurApi->resp->loadsetup, &resp, sizeof(resp));
@@ -729,6 +733,10 @@ int NURAPICONV NurApiSetModuleSetup(struct NUR_API_HANDLE *hNurApi, struct NUR_C
 	ADDMEMBER(NUR_SETUP_AUTOPERIOD, periodSetup);
 	ADDMEMBER(NUR_SETUP_PERANTPOWER, antPower);
 	ADDMEMBER(NUR_SETUP_PERANTOFFSET, powerOffset);
+	ADDMEMBER(NUR_SETUP_ANTMASKEX, antennaMaskEx);
+	ADDMEMBER(NUR_SETUP_AUTOTUNE, autotune);
+	ADDMEMBER(NUR_SETUP_PERANTPOWER_EX, antPowerEx);
+	ADDMEMBER(NUR_SETUP_RXSENS, rxSensitivity);
 
 	error = NurApiXchPacket(hNurApi, NUR_CMD_LOADSETUP2, payloadSize, DEF_TIMEOUT);	
 	if (error == NUR_SUCCESS || error == NUR_ERROR_INVALID_PARAMETER)
