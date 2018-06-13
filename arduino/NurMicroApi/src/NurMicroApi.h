@@ -139,6 +139,18 @@ extern "C" {
 /** Number of bands the antenna tuning uses. */
 #define NR_TUNEBANDS			6
 
+/** Receiver sensitivity "low" setting.  */
+#define NUR_RXSENS_LOW		1
+/** Receiver sensitivity "nominal" setting.  */
+#define NUR_RXSENS_NOMINAL	0
+/** Receiver sensitivity "high" setting.  */
+#define NUR_RXSENS_HIGH		2
+
+/** Enable run-time automatic tuning. */
+#define AUTOTUNE_MODE_ENABLE	(1 << 0)
+/** Use threshold in the run-time automatic tuning. */
+#define AUTOTUNE_MODE_THRESHOLD_ENABLE	(1 << 1)
+
 /**
  * NUR module baudrate indices.
  * @sa NurApiGetBaudrate(), NurApiSetBaudrate()
@@ -397,7 +409,8 @@ enum NUR_ANTENNAID
 	NUR_ANTENNAID_2,		/**< Antenna ID 2. */
 	NUR_ANTENNAID_3,		/**< Antenna ID 3. */
 	NUR_ANTENNAID_4,		/**< Antenna ID 4. */
-	NUR_MAX_ANTENNAS		/**< Maximum number of antennas. */
+	NUR_MAX_ANTENNAS = 4,		/**< Old maximum number of antennas. Provided for compatibility. Use NUR_MAX_ANTENNAS_EX instead */
+	NUR_MAX_ANTENNAS_EX = 32	/**< Maximum number of antennas. */
 };
 
 /**
@@ -456,14 +469,12 @@ enum NUR_MODULESETUP_FLAGS
 	NUR_SETUP_AUTOPERIOD	= (1L<<22), /**< stixPeriod field in struct NUR_MODULESETUP is valid */
 	NUR_SETUP_PERANTPOWER	= (1L<<23), /**< antPower field in struct NUR_MODULESETUP is valid */
 	NUR_SETUP_PERANTOFFSET	= (1L<<24), /**< powerOffset field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_ANTMASKEX		= (1<<25),	/**< antennaMaskEx field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_AUTOTUNE		= (1<<26),	/**< autotune field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_PERANTPOWER_EX = (1<<27), /**< antPowerEx field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_RXSENS		= (1<<28),	/**< rxSensitivity field in struct NUR_MODULESETUP is valid */
 
-	NUR_SETUP_ALL		= (NUR_SETUP_LINKFREQ | NUR_SETUP_RXDEC | NUR_SETUP_TXLEVEL | NUR_SETUP_TXMOD | NUR_SETUP_REGION |
-							NUR_SETUP_INVQ | NUR_SETUP_INVSESSION | NUR_SETUP_INVROUNDS | NUR_SETUP_ANTMASK |
-							NUR_SETUP_SCANSINGLETO | NUR_SETUP_INVENTORYTO | NUR_SETUP_SELECTEDANT |
-							NUR_SETUP_OPFLAGS | NUR_SETUP_INVTARGET | NUR_SETUP_INVEPCLEN |
-							NUR_SETUP_READRSSIFILTER | NUR_SETUP_WRITERSSIFILTER | NUR_SETUP_INVRSSIFILTER |
-							NUR_SETUP_READTIMEOUT | NUR_SETUP_WRITETIMEOUT | NUR_SETUP_LOCKTIMEOUT | NUR_SETUP_KILLTIMEOUT |
-							NUR_SETUP_AUTOPERIOD | NUR_SETUP_PERANTPOWER | NUR_SETUP_PERANTOFFSET)	/**< All fields in struct NUR_MODULESETUP are valid */
+	NUR_SETUP_ALL			=	((1 << 29) - 1)	/**< All setup flags in the structure. */
 };
 
 /** Possible inventory targets.
@@ -839,9 +850,16 @@ NUR_API int NURAPICONV NurApiInventory(struct NUR_API_HANDLE *hNurApi,
 							   struct NUR_CMD_INVENTORY_PARAMS *params);
 NUR_API int NURAPICONV NurApiInventoryEx(struct NUR_API_HANDLE *hNurApi,
 										struct NUR_CMD_INVENTORYEX_PARAMS *params);
+
+NUR_API int NURAPICONV NurApiGetInventoryReadConfig(struct NUR_API_HANDLE *hNurApi);
+NUR_API int NURAPICONV NurApiSetInventoryReadConfig(struct NUR_API_HANDLE *hNurApi,
+													struct NUR_CMD_CONFIGIR_PARAMS *params);
+
 NUR_API int NURAPICONV NurApiFetchTags(struct NUR_API_HANDLE *hNurApi, BOOL includeMeta, BOOL clearModuleTags, int *tagsReceived, pFetchTagsFunction tagFunc);
 NUR_API int NURAPICONV NurApiFetchTagAt(struct NUR_API_HANDLE *hNurApi, BOOL includeMeta, int tagNum, pFetchTagsFunction tagFunc);
 NUR_API int NURAPICONV NurApiClearTags(struct NUR_API_HANDLE *hNurApi);
+
+NUR_API int NURAPICONV NurApiSetExtCarrier(struct NUR_API_HANDLE *hNurApi, BOOL on);
 
 int NURAPICONV NurApiTraceTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_TRACETAG_PARAMS *params);
 
@@ -861,6 +879,27 @@ int NURAPICONV NurApiSetGPIOConfig(struct NUR_API_HANDLE *hNurApi, struct NUR_CM
 int NURAPICONV NurApiGetGPIOConfig(struct NUR_API_HANDLE *hNurApi);
 int NURAPICONV NurApiSetGPIOStatus(struct NUR_API_HANDLE *hNurApi, int gpio, BOOL state);
 int NURAPICONV NurApiGetGPIOStatus(struct NUR_API_HANDLE *hNurApi, int gpio);
+
+int NURAPICONV NurApiGetMode(struct NUR_API_HANDLE *hNurApi, char *mode);
+int NURAPICONV NurApiModuleRestart(struct NUR_API_HANDLE *hNurApi);
+int NURAPICONV NurApiEnterBoot(struct NUR_API_HANDLE *hNurApi);
+
+#define NUR_APP_FIRST_PAGE ((64 * 1024) / NUR_FLASH_PAGE_SIZE)
+#define NUR_BL_FIRST_PAGE (0)
+
+struct NUR_PRGPROGRESS_DATA
+{
+	int error;			/**< Error code returned from page programming. */
+	int curPage;		/**< Current page, this is -1 in first notification before programming started. */
+	int totalPages;		/**< Total number of pages to program. */
+};
+
+/** Called while programming. Return 0 to continue, non-zero to stop programming */
+typedef int (*pProgramProgressFunction)(struct NUR_API_HANDLE *hNurApi, struct NUR_PRGPROGRESS_DATA *prg);
+
+int NURAPICONV NurApiProgramBuffer(struct NUR_API_HANDLE *hNurApi, pProgramProgressFunction prgFn, WORD startPage, BYTE validateCmd, BYTE *buffer, DWORD bufferLen);
+int NURAPICONV NurApiProgramApp(struct NUR_API_HANDLE *hNurApi, pProgramProgressFunction prgFn, BYTE *buffer, DWORD bufferLen);
+int NURAPICONV NurApiProgramBootloader(struct NUR_API_HANDLE *hNurApi, pProgramProgressFunction prgFn, BYTE *buffer, DWORD bufferLen);
 
 #ifndef IMPLEMENT_CRC16
 extern WORD NurCRC16(WORD crc, BYTE *buf, DWORD len);

@@ -364,6 +364,14 @@ struct NUR_CMD_INVENTORYEX_PARAMS
 	struct NUR_CMD_INVENTORYEX_FILTER filters[NUR_MAX_FILTERS];
 } NUR_PACKED;
 
+struct NUR_CMD_IRCONFIG_PARAMS
+{
+  BYTE active;
+  BYTE type;
+  BYTE bank;
+  DWORD wAddress;
+  BYTE wLength;
+} NUR_PACKED;
 
 struct NUR_SINGULATIONBLOCK
 {
@@ -590,6 +598,17 @@ struct NUR_RSSI_FILTER
 	char max; /**< Maximum accepted RSSI in dBm. Use 0 to disable filtering. */
 } NUR_PACKED;
 
+/**
+ * Module's autotune setup. Supported from FW 5.0-A in L2 module.
+ * 
+ * @sa AUTOTUNE_MODE_ENABLE, AUTOTUNE_MODE_THRESHOLD_ENABLE
+*/
+struct NUR_AUTOTUNE_SETUP
+{
+	BYTE mode;			/**< Autotune mode setting, bits: @sa AUTOTUNE_MODE_ENABLE, AUTOTUNE_MODE_THRESHOLD_ENABLE. */
+	char threshold_dBm;	/**< Low level threshold in dBm. Do autotune if current reflected power worse than 'threshold_dBm' */
+};
+
 struct NUR_CMD_LOADSETUP_PARAMS
 {
 	DWORD flags;
@@ -616,10 +635,32 @@ struct NUR_CMD_LOADSETUP_PARAMS
 	WORD writeTO;
 	WORD lockTO;
 	WORD killTO;
+
+	/** Defines how the periodic auto-inventory power saving is configured.
+	 * When in use, reader will be power save mode while no tags in view.
+	 */
 	WORD periodSetup;
 
+	/** DEPRECATED! Per antenna specific power levels. Use antPowerEx instead. */
 	BYTE antPower[NUR_MAX_ANTENNAS];
+
+	/** Modify power levels' offset values (-1, 0, 1) NOTE: First entry in array used for all antennas! Rest of the entries are discarded. */
 	char powerOffset[NUR_MAX_ANTENNAS];
+
+	/** Bitmask of enabled antennas, support up to 32 antennas. Value 0x1 - 0xFFFFFFFF.
+	 * Example: Value 0x4 means that only antenna 3 is enabled.
+	 * Example: Value 0x30300 means that antennas 9,10,17,18 are enabled.
+	 */
+	DWORD antennaMaskEx;
+
+	/** Runtime auto tuning settings. */
+	struct NUR_AUTOTUNE_SETUP autotune;
+
+	/** Per antenna specific tx levels. Array of the per antenna tx level values. Range is 0..19; Defaults to -1. If set to -1 default tx level is used from the module setup. */
+	char antPowerEx[NUR_MAX_ANTENNAS_EX];
+
+	/** The receiver sensitivity field. 0 = Nominal, 1 = Low, 2 = High */
+	BYTE rxSensitivity;
 } NUR_PACKED;
 
 struct NUR_CMD_BEEP_PARAMS
@@ -891,7 +932,8 @@ struct NUR_CMD_RESP
     	struct NUR_CMD_VERSION_RESP			versions;    	
     	struct NUR_SINGLETUNE_RESP			tuneres;
 		struct NUR_CMD_DEVCAPS_RESP			devcaps;		
-		
+		struct NUR_CMD_IRCONFIG_PARAMS		irconfig;
+
 		BYTE rawdata[1];
 	};
 } NUR_PACKED;
