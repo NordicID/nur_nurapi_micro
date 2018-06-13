@@ -4,12 +4,12 @@
 /*
   NurExample
   Does tag inventory in loop every 1000ms.
-  
+
   This example code is in the public domain.
 */
 
 // NUR serial port baud rate.
-// NOTE: By default NUR module is configured to 115200 baudrate. 
+// NOTE: By default NUR module is configured to 115200 baudrate.
 //       If using something else baudrate (e.g. 38400) you'll need to reconfigure NUR for other baudrate using Nordic ID RFID Configurator app.
 #define NUR_SERIAL_BAUDRATE   (38400)
 
@@ -35,7 +35,7 @@ SoftwareSerial swSerial(10, 11); // RX, TX
 static BYTE ApiRxBuffer[256];
 static BYTE ApiTxBuffer[128];
 
-// Ttue if NUR module detected in setup()
+// True if NUR module detected in setup()
 BOOL NurAvailable = FALSE;
 
 // NurMicroApi handle
@@ -45,7 +45,7 @@ static struct NUR_API_HANDLE gApi =
   NULL, // TransportReadDataFunction
   NULL, // TransportWriteDataFunction
   NULL, // UnsolEventHandler;
-  
+
   NULL, // BYTE *TxBuffer;
   0,    // DWORD TxBufferLen;
 
@@ -81,7 +81,7 @@ int nur_serial_read(struct NUR_API_HANDLE *hNurApi, BYTE *buffer, DWORD bufferLe
 
   *bytesRead = dwRead;
 
-  return NUR_SUCCESS;  
+  return NUR_SUCCESS;
 }
 
 // Write buffer to NUR serial
@@ -89,7 +89,7 @@ int nur_serial_write(struct NUR_API_HANDLE *hNurApi, BYTE *buffer, DWORD bufferL
 {
   DWORD dwWritten = 0;
 
-  while (dwWritten < bufferLen) 
+  while (dwWritten < bufferLen)
   {
     NurSerial.write(buffer[dwWritten++]);
   }
@@ -126,7 +126,7 @@ static void nur_print_versions()
     PrintSerial.print(F("Versions, mode "));
     PrintSerial.print((char)vr->mode);
     PrintSerial.println("");
-    
+
     PrintSerial.print(F(" - primary   : "));
     PrintSerial.print(vr->vMajor, DEC);
     PrintSerial.print(F("."));
@@ -134,7 +134,7 @@ static void nur_print_versions()
     PrintSerial.print(F("-"));
     PrintSerial.print((char)vr->vBuild);
     PrintSerial.println("");
-    
+
     PrintSerial.print(F(" - secondary : "));
     PrintSerial.print(vr->otherMajor, DEC);
     PrintSerial.print(F("."));
@@ -151,11 +151,46 @@ static void nur_print_versions()
 #endif
 }
 
+// Configure NUR module
+static void nur_configure_module()
+{
+  int rc = NUR_SUCCESS;
+  struct NUR_CMD_LOADSETUP_PARAMS params;
+  // Flag settings that you want to chage
+  params.flags = NUR_SETUP_TXLEVEL | NUR_SETUP_ANTMASK | NUR_SETUP_SELECTEDANT;
+  // Set TxLevel to maximum (500mW/1000mW depending from the module)
+  params.txLevel = 0;
+  // Enable antenna 0.
+  // Use bit operation if you want to enable multiple
+  // antennas like antenna 0 and 1 (NUR_ANTENNAMASK_1 | NUR_ANTENNAMASK_2)
+  params.antennaMask = NUR_ANTENNAMASK_1;
+  // Set antenna selection to auto mode
+  params.selectedAntenna = NUR_ANTENNAID_AUTOSELECT;
+#ifdef PrintSerial
+  PrintSerial.print(F("Configure NUR module"));
+#endif
+  // Set new module setti
+  rc = NurApiSetModuleSetup(&gApi, &params);
+  if (rc == NUR_SUCCESS) {
+#ifdef PrintSerial
+    PrintSerial.print(F("OK"));
+#endif
+  }
+  else
+  {
+#ifdef PrintSerial
+    PrintSerial.print(F("SetModuleSetup error. Code = "));
+    PrintSerial.print(rc, DEC);
+    PrintSerial.println("");
+#endif
+  }
+}
+
 #ifdef PrintSerial
 void print_hex(int val) {
-     char tmp[3];
-     sprintf(tmp, "%02X", val);
-     PrintSerial.print(tmp);
+  char tmp[3];
+  sprintf(tmp, "%02X", val);
+  PrintSerial.print(tmp);
 }
 #endif
 
@@ -172,7 +207,7 @@ int nur_fetch_tags_function(struct NUR_API_HANDLE *hNurApi, struct NUR_IDBUFFER_
   PrintSerial.print(tag->scaledRssi, DEC);
   PrintSerial.print(F("%) EPC: "));
 
-  for (n=0; n<tag->epcLen; n++) {
+  for (n = 0; n < tag->epcLen; n++) {
     print_hex(tag->epcData[n]);
   }
   PrintSerial.println("");
@@ -195,16 +230,16 @@ void nur_tag_inventory()
 
   // Clear tag buffer
   rc = NurApiClearTags(&gApi);
-  if (rc == NUR_SUCCESS) 
+  if (rc == NUR_SUCCESS)
   {
     // Perform tag inventory
     rc = NurApiInventory(&gApi, NULL); // Pass NULL as params, uses default inventory settings from module setup
-    if (rc == NUR_SUCCESS) 
+    if (rc == NUR_SUCCESS)
     {
       // Fetch tags one by one
       int tagCount, n;
       tagCount = gApi.resp->inventory.numTagsMem;
-      for (n=0; n<tagCount; n++)
+      for (n = 0; n < tagCount; n++)
       {
         rc = NurApiFetchTagAt(&gApi, TRUE, n, nur_fetch_tags_function);
         if (rc != NUR_SUCCESS) {
@@ -240,7 +275,7 @@ void setup() {
 
 #ifdef PrintSerial
   // Open the print serial port
-  PrintSerial.begin(PRINT_SERIAL_BAUDRATE);  
+  PrintSerial.begin(PRINT_SERIAL_BAUDRATE);
   PrintSerial.println(F("Start"));
 #endif
 
@@ -260,7 +295,7 @@ void setup() {
     PrintSerial.println(F("NUR DETECTED"));
 #endif
     nur_print_versions();
-  } 
+  }
   else {
     // No response or invalid response
 #ifdef PrintSerial
@@ -289,4 +324,3 @@ void loop() {
   digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
   delay(1000);                       // wait for a 1000ms
 }
-

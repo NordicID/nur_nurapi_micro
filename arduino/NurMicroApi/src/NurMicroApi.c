@@ -1357,7 +1357,7 @@ int NURAPICONV NurApiProgramBuffer(struct NUR_API_HANDLE *hNurApi, pProgramProgr
 		if (pageSize > NUR_FLASH_PAGE_SIZE)
 			pageSize = NUR_FLASH_PAGE_SIZE;
 		
-		memcpy(pagewriteParams->data, &buffer[writePos], pageSize);
+		nurMemcpy(pagewriteParams->data, &buffer[writePos], pageSize);
 
 		if (pageSize < NUR_FLASH_PAGE_SIZE) {
 			// Pad with 0xFF

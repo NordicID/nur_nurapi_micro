@@ -469,12 +469,12 @@ enum NUR_MODULESETUP_FLAGS
 	NUR_SETUP_AUTOPERIOD	= (1L<<22), /**< stixPeriod field in struct NUR_MODULESETUP is valid */
 	NUR_SETUP_PERANTPOWER	= (1L<<23), /**< antPower field in struct NUR_MODULESETUP is valid */
 	NUR_SETUP_PERANTOFFSET	= (1L<<24), /**< powerOffset field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_ANTMASKEX		= (1<<25),	/**< antennaMaskEx field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_AUTOTUNE		= (1<<26),	/**< autotune field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_PERANTPOWER_EX = (1<<27), /**< antPowerEx field in struct NUR_MODULESETUP is valid */
-	NUR_SETUP_RXSENS		= (1<<28),	/**< rxSensitivity field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_ANTMASKEX		= (1L<<25),	/**< antennaMaskEx field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_AUTOTUNE		= (1L<<26),	/**< autotune field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_PERANTPOWER_EX = (1L<<27), /**< antPowerEx field in struct NUR_MODULESETUP is valid */
+	NUR_SETUP_RXSENS		= (1L<<28),	/**< rxSensitivity field in struct NUR_MODULESETUP is valid */
 
-	NUR_SETUP_ALL			=	((1 << 29) - 1)	/**< All setup flags in the structure. */
+	NUR_SETUP_ALL			=	((1L << 29) - 1)	/**< All setup flags in the structure. */
 };
 
 /** Possible inventory targets.
@@ -853,7 +853,7 @@ NUR_API int NURAPICONV NurApiInventoryEx(struct NUR_API_HANDLE *hNurApi,
 
 NUR_API int NURAPICONV NurApiGetInventoryReadConfig(struct NUR_API_HANDLE *hNurApi);
 NUR_API int NURAPICONV NurApiSetInventoryReadConfig(struct NUR_API_HANDLE *hNurApi,
-													struct NUR_CMD_CONFIGIR_PARAMS *params);
+													struct NUR_CMD_IRCONFIG_PARAMS *params);
 
 NUR_API int NURAPICONV NurApiFetchTags(struct NUR_API_HANDLE *hNurApi, BOOL includeMeta, BOOL clearModuleTags, int *tagsReceived, pFetchTagsFunction tagFunc);
 NUR_API int NURAPICONV NurApiFetchTagAt(struct NUR_API_HANDLE *hNurApi, BOOL includeMeta, int tagNum, pFetchTagsFunction tagFunc);
@@ -884,7 +884,7 @@ int NURAPICONV NurApiGetMode(struct NUR_API_HANDLE *hNurApi, char *mode);
 int NURAPICONV NurApiModuleRestart(struct NUR_API_HANDLE *hNurApi);
 int NURAPICONV NurApiEnterBoot(struct NUR_API_HANDLE *hNurApi);
 
-#define NUR_APP_FIRST_PAGE ((64 * 1024) / NUR_FLASH_PAGE_SIZE)
+#define NUR_APP_FIRST_PAGE ((64L * 1024L) / NUR_FLASH_PAGE_SIZE)
 #define NUR_BL_FIRST_PAGE (0)
 
 struct NUR_PRGPROGRESS_DATA
