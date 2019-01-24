@@ -1,15 +1,15 @@
 /* 
-	Copyright (c) 2017 Nordic ID.
+Copyright (c) 2017 Nordic ID.
 
-	Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), 
-	to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
-	and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), 
+to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-	The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
-	WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #define _CRT_SECURE_NO_WARNINGS	1
@@ -29,7 +29,7 @@ static BYTE gRxBuffer[NUR_MAX_RCV_SZ];
 static BYTE gTxBuffer[NUR_MAX_SEND_SZ];
 
 /*
-	In this approach we are using a static API structure.
+In this approach we are using a static API structure.
 */
 static struct NUR_API_HANDLE gApi =
 {
@@ -37,7 +37,7 @@ static struct NUR_API_HANDLE gApi =
 	NULL,	// TransportReadDataFunction
 	NULL,	// TransportWriteDataFunction
 	NULL,	// UnsolEventHandler;
-	
+
 	NULL,	// BYTE *TxBuffer;
 	0,		// DWORD TxBufferLen;
 
@@ -56,7 +56,7 @@ static int NurApiEnsureMode(struct NUR_API_HANDLE *hNurApi, char desiredMode)
 	int error;
 	int retries = 5;
 	char curMode = 'X';	
-	
+
 	// Get current mode
 	error = NurApiGetMode(hNurApi, &curMode);
 
@@ -65,7 +65,7 @@ static int NurApiEnsureMode(struct NUR_API_HANDLE *hNurApi, char desiredMode)
 	}
 
 	while (retries-- > 0 && curMode != desiredMode) {
-		
+
 		// Attempt to switch mode
 		NurApiEnterBoot(hNurApi);
 
@@ -137,7 +137,7 @@ static int NurApiProgramFile(struct NUR_API_HANDLE *hNurApi, WORD startPage, BYT
 		return NUR_ERROR_GENERAL;
 	}
 	fclose(fp);
-	
+
 	error = NurApiProgramBuffer(hApi, ProgramProgressFunction, startPage, validateCmd, fileBuffer, fileLen);
 
 	free(fileBuffer);
@@ -253,7 +253,7 @@ static void handle_readerinfo()
 	cls();
 
 	rc = NurApiGetReaderInfo(hApi);
-	
+
 	if (rc == NUR_SUCCESS) { 		
 		ri = &hApi->resp->readerinfo;
 		printf("* Reader information *\n");
@@ -309,15 +309,15 @@ static char *RxDecToStr(int rxd)
 
 	switch (rxd)
 	{
-		case 0: return "FM0";
-		case 1:
-		case 2:
-		case 3: 
-			sprintf(buf, "M-%d", (1<<rxd));
-			break;
-		default:
-			sprintf(buf, "unknown RX decoding (%d)", rxd);
-			break;
+	case 0: return "FM0";
+	case 1:
+	case 2:
+	case 3: 
+		sprintf(buf, "M-%d", (1<<rxd));
+		break;
+	default:
+		sprintf(buf, "unknown RX decoding (%d)", rxd);
+		break;
 	}
 
 	return buf;
@@ -327,7 +327,7 @@ static void handle_setup_get()
 {
 	struct NUR_CMD_LOADSETUP_PARAMS *setup;
 	int flags, rc;
-	
+
 	if (!gConnected)
 		return;
 
@@ -353,7 +353,7 @@ static void handle_setup_set_txlevel()
 {
 	struct NUR_CMD_LOADSETUP_PARAMS params;
 	int txlevel, rc;
-	
+
 	if (!gConnected)
 		return;
 
@@ -405,7 +405,7 @@ int FetchTagsFunction(struct NUR_API_HANDLE *hNurApi, struct NUR_IDBUFFER_ENTRY 
 static void handle_inventoryex_epcmask(BYTE *epcMask, int epcMaskByteLen)
 {
 	int rc, n;
-	
+
 	struct NUR_CMD_INVENTORYEX_PARAMS params;
 
 	if (!gConnected)
@@ -485,7 +485,7 @@ static void handle_inventoryex_epcmask(BYTE *epcMask, int epcMaskByteLen)
 static void handle_inventory()
 {
 	int rc;
-	
+
 	if (!gConnected)
 		return;
 
@@ -673,23 +673,23 @@ static BOOL do_command()
 
 	switch (key)
 	{
-		case '1': handle_connection(); break;
-		case '2': handle_ping(); break;
-		case '3': handle_versions(1); break;
-		case '4': handle_readerinfo(); break;		
-		case '5': handle_setup_get(); break;
-		case '6': handle_inventory(); break;
-		case '7': {
-			BYTE epcMask[] = { 0x30 }; // Select SGTIN-96 tags (EPC starting with "30")
-			handle_inventoryex_epcmask(epcMask, sizeof(epcMask));
-			break;
-		}
-		case '8': handle_tune(); break;
-		case '9': handle_setup_set_txlevel(); break;			
-		case 'u': handle_app_update(); break;			
-		case 's': handle_switch_mode(); break;			
+	case '1': handle_connection(); break;
+	case '2': handle_ping(); break;
+	case '3': handle_versions(1); break;
+	case '4': handle_readerinfo(); break;		
+	case '5': handle_setup_get(); break;
+	case '6': handle_inventory(); break;
+	case '7': {
+		BYTE epcMask[] = { 0x30 }; // Select SGTIN-96 tags (EPC starting with "30")
+		handle_inventoryex_epcmask(epcMask, sizeof(epcMask));
+		break;
+			  }
+	case '8': handle_tune(); break;
+	case '9': handle_setup_set_txlevel(); break;			
+	case 'u': handle_app_update(); break;			
+	case 's': handle_switch_mode(); break;			
 
-		default: break;
+	default: break;
 	}
 
 	cls();

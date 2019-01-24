@@ -1,22 +1,22 @@
 /* 
-	Copyright (c) 2017 Nordic ID.
+Copyright (c) 2017 Nordic ID.
 
-	Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), 
-	to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
-	and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), 
+to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-	The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
-	WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #include "NurApiConfig.h"
 #include "NurMicroApi.h"
 
 #ifndef NULL
-	#define NULL ((void*)0)
+#define NULL ((void*)0)
 #endif
 
 #ifdef HAVE_NUR_STRNCPY
@@ -28,7 +28,7 @@ char *nurStrncpy(char *destination, const char *source, int num)
 	{
 		if (sourceEnd == 0 && source[i] == '\0')
 			sourceEnd = 1;
-		
+
 		if (sourceEnd)
 			destination[i] = '\0';
 		else
@@ -194,28 +194,28 @@ static WORD __inline crc_16_update(WORD crc, BYTE data)
 static WORD crc_16_update(WORD crc, BYTE data)
 #endif
 {
-    int i;
+	int i;
 
-    crc = crc ^ ((WORD)data << 8);
-    for (i=0; i<8; i++)
-    {
-        if (crc & 0x8000)
-            crc = (crc << 1) ^ MSG_CCITT_CRC_POLY;
-        else
-            crc <<= 1;
-    }
+	crc = crc ^ ((WORD)data << 8);
+	for (i=0; i<8; i++)
+	{
+		if (crc & 0x8000)
+			crc = (crc << 1) ^ MSG_CCITT_CRC_POLY;
+		else
+			crc <<= 1;
+	}
 
-    return crc;
+	return crc;
 }
 
 static WORD NurCRC16(WORD crc, BYTE *buf, DWORD len)
 {
 	WORD wCrc = crc;
-	
+
 	while (len--) {
 		wCrc = crc_16_update(wCrc, *buf++);
 	}
-	
+
 	return wCrc;
 }
 
@@ -251,80 +251,80 @@ int NurApiHandlePacketData(struct NUR_API_HANDLE *hNurApi, DWORD bytesToProcess)
 
 		switch (packetHandlerState)
 		{
-			case STATE_IDLE:
-				if (hNurApi->RxBuffer[0] == 0xA5)
+		case STATE_IDLE:
+			if (hNurApi->RxBuffer[0] == 0xA5)
+			{
+				// Got header marker
+				packetHandlerState = STATE_HDR;
+			}
+			else 
+			{
+				// Invalid header, just ignore data
+				hNurApi->RxBufferUsed = 0;
+			}
+			break;
+
+		case STATE_HDR:
+			// Wait for header completely received
+			if (hNurApi->RxBufferUsed == HDR_SIZE) 
+			{
+				// Calculate header checksum
+				BYTE headerChecksum = 0xFF;
+				headerChecksum ^= (	hNurApi->RxBuffer[0] ^ 
+									hNurApi->RxBuffer[1] ^ 
+									hNurApi->RxBuffer[2] ^ 
+									hNurApi->RxBuffer[3] ^ 
+									hNurApi->RxBuffer[4]);
+
+				// Validate checksum
+				if (headerChecksum == RxHeaderPtr->checksum)
 				{
-					// Got header marker
-					packetHandlerState = STATE_HDR;
+					// Valid header received, go to payload state
+					packetHandlerState = STATE_PAYLOAD;
 				}
 				else 
 				{
-					// Invalid header, just ignore data
+					// Invalid header checksum, return to idle..
 					hNurApi->RxBufferUsed = 0;
+					packetHandlerState = STATE_IDLE;
 				}
-				break;
-				
-			case STATE_HDR:
-				// Wait for header completely received
-				if (hNurApi->RxBufferUsed == HDR_SIZE) 
+			}
+			break;
+
+		case STATE_PAYLOAD:
+			// Wait for packet completely received
+			if (hNurApi->RxBufferUsed == (DWORD)(RxHeaderPtr->payloadlen + HDR_SIZE))
+			{
+				WORD calcCRC = 0xFFFF;
+				WORD packetCRC = 0;
+				BYTE *payloadBuffer = RxPayloadCmdPtr;
+
+				// Calculate payload CRC, last WORD contains CRC16 calculated by module
+				calcCRC = NurCRC16(calcCRC, payloadBuffer, RxHeaderPtr->payloadlen - 2);
+
+				// Validate CRC
+				packetCRC = BytesToWord(&payloadBuffer[RxHeaderPtr->payloadlen-2]);
+				if (packetCRC == calcCRC)
 				{
-					// Calculate header checksum
-					BYTE headerChecksum = 0xFF;
-					headerChecksum ^= (	hNurApi->RxBuffer[0] ^ 
-										hNurApi->RxBuffer[1] ^ 
-										hNurApi->RxBuffer[2] ^ 
-										hNurApi->RxBuffer[3] ^ 
-										hNurApi->RxBuffer[4]);
+					// Payload valid, we're ready
+					packetHandlerState = STATE_PACKETREADY;
 
-					// Validate checksum
-					if (headerChecksum == RxHeaderPtr->checksum)
-					{
-						// Valid header received, go to payload state
-						packetHandlerState = STATE_PAYLOAD;
-					}
-					else 
-					{
-						// Invalid header checksum, return to idle..
-						hNurApi->RxBufferUsed = 0;
-						packetHandlerState = STATE_IDLE;
-					}
+					// Store response info
+					hNurApi->respLen = RxHeaderPtr->payloadlen-1-1-2; // - cmd - status - CRC
+					hNurApi->resp = (struct NUR_CMD_RESP *)RxPayloadCmdPtr;
 				}
-				break;
-				
-			case STATE_PAYLOAD:
-				// Wait for packet completely received
-				if (hNurApi->RxBufferUsed == (DWORD)(RxHeaderPtr->payloadlen + HDR_SIZE))
+				else
 				{
-					WORD calcCRC = 0xFFFF;
-					WORD packetCRC = 0;
-					BYTE *payloadBuffer = RxPayloadCmdPtr;
-
-					// Calculate payload CRC, last WORD contains CRC16 calculated by module
-					calcCRC = NurCRC16(calcCRC, payloadBuffer, RxHeaderPtr->payloadlen - 2);
-
-					// Validate CRC
-					packetCRC = BytesToWord(&payloadBuffer[RxHeaderPtr->payloadlen-2]);
-					if (packetCRC == calcCRC)
-					{
-						// Payload valid, we're ready
-						packetHandlerState = STATE_PACKETREADY;
-
-						// Store response info
-						hNurApi->respLen = RxHeaderPtr->payloadlen-1-1-2; // - cmd - status - CRC
-						hNurApi->resp = (struct NUR_CMD_RESP *)RxPayloadCmdPtr;
-					}
-					else
-					{
-						// Invalid payload CRC, return to idle..
-						hNurApi->RxBufferUsed = 0;
-						packetHandlerState = STATE_IDLE;
-					}
+					// Invalid payload CRC, return to idle..
+					hNurApi->RxBufferUsed = 0;
+					packetHandlerState = STATE_IDLE;
 				}
-				break;
-				
-			case STATE_PACKETREADY:
-				// Packet ready, buffer data
-				break;
+			}
+			break;
+
+		case STATE_PACKETREADY:
+			// Packet ready, buffer data
+			break;
 		}
 
 		if (packetHandlerState == STATE_PACKETREADY)
@@ -357,7 +357,7 @@ int NURAPICONV NurApiSetupPacket(struct NUR_API_HANDLE *hNurApi, BYTE cmd, WORD 
 {
 	WORD payloadCRC;
 	WORD payloadLenWithoutCRC;
-	
+
 	// Setup packet header
 	TxHeaderPtr->start = PACKET_START;
 	TxHeaderPtr->flags = flags;
@@ -379,7 +379,7 @@ int NURAPICONV NurApiSetupPacket(struct NUR_API_HANDLE *hNurApi, BYTE cmd, WORD 
 
 	// Whole packet length, including header, cmd, payload and CRC
 	*packetLen = (HDR_SIZE + TxHeaderPtr->payloadlen);
-	
+
 	return NUR_SUCCESS;
 }
 
@@ -435,7 +435,7 @@ WAITMORE:
 			}
 		}
 	}
-	
+
 	if (packetState != STATE_PACKETREADY)
 	{
 		// Packet was not ready within timeout
@@ -449,13 +449,13 @@ WAITMORE:
 			hNurApi->UnsolEventHandler(hNurApi);
 		}
 	}
-	
+
 	if (cmd == 0)
 	{
 		// Waiting for event's only..
 		return 0;
 	}
-	
+
 	// Make sure packet is meant for us
 	if (hNurApi->resp->cmd != cmd)
 	{
@@ -526,7 +526,7 @@ int NURAPICONV NurApiGetReaderInfo(struct NUR_API_HANDLE *hNurApi)
 	// Read serial number string
 	nurMemcpy(ri.serial, &ptr[pos], ri.serialLen);
 	pos += ri.serialLen;
-				
+
 	if (ri.version == NUR_READERINFO_VERSION1)
 	{
 		// Version 1 and up ontains ALT serial also
@@ -633,9 +633,9 @@ static void SetupGetMember(DWORD memberFlag, void *memberPtr, int sizeofMember, 
 }
 
 #ifdef _MSC_VER
-	#define GETMEMBER(fl, name) SetupGetMember(fl, &resp.##name, sizeof(resp.##name), flags, ptr, &pos)
+#define GETMEMBER(fl, name) SetupGetMember(fl, &resp.##name, sizeof(resp.##name), flags, ptr, &pos)
 #else
-	#define GETMEMBER(fl, name) SetupGetMember(fl, &resp.name, sizeof(resp.name), flags, ptr, &pos)
+#define GETMEMBER(fl, name) SetupGetMember(fl, &resp.name, sizeof(resp.name), flags, ptr, &pos)
 #endif
 
 static void ParseModuleSetupResponse(struct NUR_API_HANDLE *hNurApi, DWORD flags)
@@ -691,9 +691,9 @@ static void SetupAddMember(DWORD memberFlag, void *memberPtr, int sizeofMember, 
 }
 
 #ifdef _MSC_VER
-	#define ADDMEMBER(fl, name) SetupAddMember(fl, &params->##name, sizeof(params->##name), params->flags, TxPayloadDataPtr, &payloadSize)
+#define ADDMEMBER(fl, name) SetupAddMember(fl, &params->##name, sizeof(params->##name), params->flags, TxPayloadDataPtr, &payloadSize)
 #else
-	#define ADDMEMBER(fl, name) SetupAddMember(fl, &params->name, sizeof(params->name), params->flags, TxPayloadDataPtr, &payloadSize)
+#define ADDMEMBER(fl, name) SetupAddMember(fl, &params->name, sizeof(params->name), params->flags, TxPayloadDataPtr, &payloadSize)
 #endif
 
 int NURAPICONV NurApiSetModuleSetup(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_LOADSETUP_PARAMS *params)
@@ -790,7 +790,7 @@ int NURAPICONV NurApiInventoryEx(struct NUR_API_HANDLE *hNurApi,
 		WORD copySize = payloadSize - sizeof(params->filters);
 		nurMemcpy(TxPayloadDataPtr, params, copySize);
 		payloadSize = copySize;
-		
+
 		for (n=0; n<params->filterCount; n++)
 		{
 			copySize = 9; // "Header" size.
@@ -876,7 +876,7 @@ int NURAPICONV ParseIdBuffer(struct NUR_API_HANDLE *hNurApi, pFetchTagsFunction 
 				nurMemcpy(&entry, &buffer[pos], 8);
 				blockLen -= 8;
 				pos += 8;
-				
+
 				// Skip dataLen member
 
 				// Copy: pc, channel
@@ -890,7 +890,7 @@ int NURAPICONV ParseIdBuffer(struct NUR_API_HANDLE *hNurApi, pFetchTagsFunction 
 		entry.antennaId = buffer[pos];
 		pos++;
 		blockLen--;
-    
+
 		if (includeMeta && includeIrData)
 		{
 			// EPC + data
@@ -904,7 +904,7 @@ int NURAPICONV ParseIdBuffer(struct NUR_API_HANDLE *hNurApi, pFetchTagsFunction 
 
 		// Set data pointer
 		entry.epcData = &buffer[pos];
-    
+
 		// Call tag callback
 		if (tagFunc) 
 		{
@@ -948,7 +948,7 @@ int NURAPICONV NurApiFetchTagAt(struct NUR_API_HANDLE *hNurApi, BOOL includeMeta
 {
 	int error;
 	WORD payloadSize = 0;
-	
+
 	PacketDword(TxPayloadDataPtr, tagNum, &payloadSize);
 
 	error = NurApiXchPacket(hNurApi, includeMeta ? NUR_CMD_GETMETABUF : NUR_CMD_GETIDBUF, payloadSize, DEF_TIMEOUT);
@@ -956,7 +956,7 @@ int NURAPICONV NurApiFetchTagAt(struct NUR_API_HANDLE *hNurApi, BOOL includeMeta
 	{
 		ParseIdBuffer(hNurApi, tagFunc, hNurApi->resp->rawdata, RxPayloadLen, includeMeta, (RxHeaderPtr->flags & PACKET_FLAG_IRDATA) != 0);
 	}
-	
+
 	return error;
 }
 
@@ -1036,8 +1036,8 @@ static void WriteCommonSingulationBlock(struct NUR_SINGULATED_CMD_PARAMS *params
 
 #ifdef CONFIG_GENERIC_READ
 int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi, 
-										 struct NUR_CMD_READ_PARAMS *params, 
-										 BYTE *rdBuffer)
+							 struct NUR_CMD_READ_PARAMS *params, 
+							 BYTE *rdBuffer)
 {
 	int error;
 	BYTE *payloadBuffer = TxPayloadDataPtr;
@@ -1111,7 +1111,7 @@ int NURAPICONV NurApiWriteTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_WRI
 	}
 	PacketByte(payloadBuffer, wb->wordcount, &payloadSize);		
 	PacketBytes(payloadBuffer, wb->data, wb->bytestofollow - hdrSize, &payloadSize);
-	
+
 	error = NurApiXchPacket(hNurApi, NUR_CMD_WRITE, payloadSize, DEF_LONG_TIMEOUT);
 	if (error == NUR_ERROR_G2_TAG_RESP)
 	{
@@ -1320,7 +1320,7 @@ DWORD NURAPICONV NurCRC32(DWORD crc, const BYTE *buf, DWORD len)
 
 int NURAPICONV NurApiProgramBuffer(struct NUR_API_HANDLE *hNurApi, pProgramProgressFunction prgFn, WORD startPage, BYTE validateCmd, BYTE *buffer, DWORD bufferLen) 
 {
-	int error = 0;
+	int error = NUR_SUCCESS;
 	DWORD numPages = 0;
 	DWORD numPagesReminder = 0;
 	DWORD writePos = 0;
@@ -1356,7 +1356,7 @@ int NURAPICONV NurApiProgramBuffer(struct NUR_API_HANDLE *hNurApi, pProgramProgr
 		pageSize = bufferLen - writePos;
 		if (pageSize > NUR_FLASH_PAGE_SIZE)
 			pageSize = NUR_FLASH_PAGE_SIZE;
-		
+
 		nurMemcpy(pagewriteParams->data, &buffer[writePos], pageSize);
 
 		if (pageSize < NUR_FLASH_PAGE_SIZE) {
@@ -1382,7 +1382,7 @@ int NURAPICONV NurApiProgramBuffer(struct NUR_API_HANDLE *hNurApi, pProgramProgr
 			// TEST: Simulated write error @ page 100
 			/*if (notificationData.curPage == 100 && writeRetries == NUR_PROGRAM_RETRIES)
 			{
-				 error = NUR_ERROR_PAGE_PROGRAM;
+			error = NUR_ERROR_PAGE_PROGRAM;
 			}*/
 			if (error == NUR_SUCCESS) {
 				break;
@@ -1434,7 +1434,7 @@ int NURAPICONV NurApiProgramBootloader(struct NUR_API_HANDLE *hNurApi, pProgramP
 }
 
 /*
-	Unaligned member access.
+Unaligned member access.
 */
 
 #if defined(CONFIG_MEMBER_ACCESS)
