@@ -138,6 +138,10 @@ enum {
 	NUR_CMD_RFSETTINGS,
 	NUR_CMD_RFRESERVED1,
 	NUR_CMD_TUNEANTENNA,
+	NUR_CMD_GETREFPOWEREX,
+	NUR_CMD_RESERVED2,
+	NUR_CMD_RESERVED3,
+	NUR_CMD_SETCHANNEL,
 	NUR_TEST_LAST
 };
 
@@ -908,6 +912,21 @@ struct NUR_CMD_VERSION_RESP
 	BYTE otherBuild;	
 } NUR_PACKED;
 
+struct NUR_CMD_GETREFPOWER_RESP
+{
+	int iPart;
+	int qPart;
+	int div;
+} NUR_PACKED;
+
+struct NUR_CMD_GETREFPOWEREX_RESP
+{
+	int iPart;
+	int qPart;
+	int div;
+	DWORD freqKhz;
+} NUR_PACKED;
+
 struct NUR_CMD_RESP
 {
 	BYTE cmd;
@@ -933,6 +952,8 @@ struct NUR_CMD_RESP
     	struct NUR_SINGLETUNE_RESP			tuneres;
 		struct NUR_CMD_DEVCAPS_RESP			devcaps;		
 		struct NUR_CMD_IRCONFIG_PARAMS		irconfig;
+		struct NUR_CMD_GETREFPOWER_RESP		getrefpower;
+		struct NUR_CMD_GETREFPOWEREX_RESP	getrefpowerex;
 
 		BYTE rawdata[1];
 	};

@@ -17,6 +17,7 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 #include <windows.h>
 #include <stdio.h>
 #include <conio.h>
+#include <math.h>
 #include "NurMicroApi.h"
 
 BOOL open_serial(struct NUR_API_HANDLE *hApi, int number, DWORD baudrate);
@@ -605,13 +606,75 @@ static void handle_app_update()
 	}
 }
 
+/* Calculate a reflected power */
+static int CalcReflPower(int iPart, int qPart, int div) {
+	double dRfdBm;
+	double t;
+
+	t = (double) ((iPart * iPart) + (qPart * qPart));
+	dRfdBm = sqrt(t);
+
+	if (!_isnan(dRfdBm)) {
+		dRfdBm = dRfdBm / div;
+		if (dRfdBm <= 0)
+			dRfdBm = 0;
+		else
+			dRfdBm = log10(dRfdBm) * 20.0f;
+	} else {
+		dRfdBm = -100;
+	}
+
+	return (int) (dRfdBm * 1000.0);
+}
+
+static void handle_get_reflected_power_ex()
+{
+	struct NUR_CMD_GETREFPOWEREX_RESP *refpowerex;
+	DWORD middle_frequency;
+	DWORD measure_frequency;
+	int reflected_power;
+
+	cls();
+	printf("* Get Reflected Power value *\n");
+
+	if (NurApiGetReflectedPowerEx(hApi, 0) == NUR_SUCCESS)
+	{
+		printf("\n");
+		refpowerex = &hApi->resp->getrefpowerex;
+		reflected_power = CalcReflPower(refpowerex->iPart, refpowerex->qPart, refpowerex->div);
+		printf("Reflected Power 0 => %.3f\n", (double)reflected_power/1000);
+		printf(" - iPart   : %d\n", refpowerex->iPart);
+		printf(" - qPart   : %d\n", refpowerex->qPart);
+		printf(" - div     : %d\n", refpowerex->div);
+		printf(" - freqKhz : %d (%.3f MHz)\n", refpowerex->freqKhz, (double)refpowerex->freqKhz/1000);
+		printf("\n");
+		middle_frequency = refpowerex->freqKhz;
+
+		measure_frequency = middle_frequency - 1000;
+		if (NurApiGetReflectedPowerEx(hApi, measure_frequency) == NUR_SUCCESS)
+		{
+			reflected_power = CalcReflPower(refpowerex->iPart, refpowerex->qPart, refpowerex->div);
+			printf("Reflected Power %d => %.3f (%.3f MHz)\n", measure_frequency, (double)reflected_power/1000, (double)refpowerex->freqKhz/1000);
+		}
+
+		measure_frequency = middle_frequency + 1000;
+		if (NurApiGetReflectedPowerEx(hApi, measure_frequency) == NUR_SUCCESS)
+		{
+			reflected_power = CalcReflPower(refpowerex->iPart, refpowerex->qPart, refpowerex->div);
+			printf("Reflected Power %d => %.3f (%.3f MHz)\n", measure_frequency, (double)reflected_power/1000, (double)refpowerex->freqKhz/1000);
+		}
+	}
+
+	printf("\n");
+	wait_key();
+}
+
 static void handle_switch_mode()
 {
 	int error;
 
 	cls();
-	printf("* Updating app (app_update.bin) *\n");
-
+	printf("* Switching mode between App <--> Boot*\n");
 
 	// Attempt to switch mode
 	error = NurApiEnterBoot(hApi);
@@ -652,6 +715,7 @@ static void options()
 		printf("[8]\tTune antenna and enable Auto-Tune feature\n");
 		printf("[9]\tSet TX Level\n");
 		printf("[u]\tUpdate app (app_update.bin)\n");
+		printf("[r]\tGet Reflected Power\n");
 		printf("[s]\tSwitch device mode to '%c'\n", mode == 'A' ? 'B' : 'A');
 	} else {
 		printf("[1]\tConnect\n");
@@ -687,6 +751,7 @@ static BOOL do_command()
 	case '8': handle_tune(); break;
 	case '9': handle_setup_set_txlevel(); break;			
 	case 'u': handle_app_update(); break;			
+	case 'r': handle_get_reflected_power_ex(); break;			
 	case 's': handle_switch_mode(); break;			
 
 	default: break;

@@ -771,6 +771,17 @@ int NURAPICONV NurApiGetDeviceCaps(struct NUR_API_HANDLE *hNurApi)
 	return NurApiXchPacket(hNurApi, NUR_CMD_DEVCAPS, 0, DEF_TIMEOUT);
 }
 
+int NURAPICONV NurApiGetReflectedPowerEx(struct NUR_API_HANDLE *hNurApi, DWORD freq)
+{
+	WORD payloadLen = 0;
+	if (freq > 0)
+	{
+		PacketDwordPos(TxPayloadDataPtr, freq, 0);
+		payloadLen = sizeof(freq);
+	}
+	return NurApiXchPacket(hNurApi, NUR_CMD_GETREFPOWEREX, payloadLen, DEF_TIMEOUT);
+}
+
 int NURAPICONV NurApiInventory(struct NUR_API_HANDLE *hNurApi,
 							   struct NUR_CMD_INVENTORY_PARAMS *params)
 {
@@ -836,6 +847,12 @@ int NURAPICONV NurApiSetExtCarrier(struct NUR_API_HANDLE *hNurApi, BOOL on)
 
 	error = NurApiXchPacket(hNurApi, NUR_CMD_CARRIER, 4, DEF_TIMEOUT);
 	return error;
+}
+
+int NURAPICONV NurApiSetConstantChannelIndex(struct NUR_API_HANDLE *hNurApi, BYTE channelIdx)
+{
+	TxPayloadDataPtr[0] = (channelIdx & 0xFF);
+	return NurApiXchPacket(hNurApi, NUR_CMD_SETCHANNEL, 1, DEF_TIMEOUT);
 }
 
 #define SZ_META_PREPEND_IR    12

@@ -846,6 +846,19 @@ NUR_API int NURAPICONV NurApiSetModuleSetup(struct NUR_API_HANDLE *hNurApi, stru
 NUR_API int NURAPICONV NurApiGetModuleSetup(struct NUR_API_HANDLE *hNurApi, DWORD setupFlags);
 NUR_API int NURAPICONV NurApiGetDeviceCaps(struct NUR_API_HANDLE *hNurApi);
 
+/** @fn int NurApiGetReflectedPowerEx(HANDLE hNurApi, DWORD freq)
+ *
+ * Get reflected power  value (NUR_CMD_GETREFPOWEREX_RESP)
+ * for given frequency or current region middle frequency.
+ *
+ * @param hNurApi		Handle to valid NurApi.
+ * @param freq			Frequency to use for the measurement in kHz.
+ *						Use 0 to measure current region middle frequency.
+ *
+ * @return	Zero when succeeded, on error non-zero error code is returned.
+ */
+NUR_API int NURAPICONV NurApiGetReflectedPowerEx(struct NUR_API_HANDLE *hNurApi, DWORD freq);
+
 NUR_API int NURAPICONV NurApiInventory(struct NUR_API_HANDLE *hNurApi,
 							   struct NUR_CMD_INVENTORY_PARAMS *params);
 NUR_API int NURAPICONV NurApiInventoryEx(struct NUR_API_HANDLE *hNurApi,
@@ -859,7 +872,33 @@ NUR_API int NURAPICONV NurApiFetchTags(struct NUR_API_HANDLE *hNurApi, BOOL incl
 NUR_API int NURAPICONV NurApiFetchTagAt(struct NUR_API_HANDLE *hNurApi, BOOL includeMeta, int tagNum, pFetchTagsFunction tagFunc);
 NUR_API int NURAPICONV NurApiClearTags(struct NUR_API_HANDLE *hNurApi);
 
+/** @fn int NurApiSetExtCarrier(HANDLE hNurApi, BOOL on)
+ * 
+ * Causes the module to leave carrier on after a command and not to jump to new frequency.
+ * The carrier on time is limited by the maximum channel time.
+ *
+ * @param hNurApi	Handle to valid NurApi.
+ * @param on		If TRUE, then the carrier is left on after next command.
+ *					When set to FALSE the carrier is shut down immediately.
+ *
+ * @return	Zero when successful. A non-zero error code otherwise.
+*/
 NUR_API int NURAPICONV NurApiSetExtCarrier(struct NUR_API_HANDLE *hNurApi, BOOL on);
+
+/** @fn int NurApiSetConstantChannelIndex(HANDLE hNurApi, BYTE channelIdx)
+ * 
+ * Set channel index to use in current hop table.
+ * This prevents NUR from hopping in different channel.
+ * Use with care: RF frequency is locked as long as this is set.
+ * Restore normal channel hopping with parameter -1
+ *
+ * @param hNurApi		Handle to valid NurApi.
+ * @param channelIdx	Channel index to use in current hop table.
+ *						Set -1 to restore normal channel hopping.
+ *
+ * @return	Zero when successful. A non-zero error code otherwise.
+*/
+NUR_API int NURAPICONV NurApiSetConstantChannelIndex(struct NUR_API_HANDLE *hNurApi, BYTE channelIdx);
 
 int NURAPICONV NurApiTraceTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_TRACETAG_PARAMS *params);
 
