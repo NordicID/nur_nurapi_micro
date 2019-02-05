@@ -538,18 +538,21 @@ enum NUR_OPFLAGS
 {
 	NUR_OPFLAGS_EN_HOPEVENTS = (1L<<0),		/**< Notification NUR_NOTIFICATION_HOPEVENT is enabled. */
 	NUR_OPFLAGS_INVSTREAM_ZEROS = (1L<<1),	/**< Inventory stream frunction will report zero count inventory rounds also. */
-	NUR_OPFLAGS_INVENTORY_TID = (1L<<2),
-	NUR_OPFLAGS_INVENTORY_READ = (1L<<3),
+	NUR_OPFLAGS_INVENTORY_TID = (1L<<2),	/**< DO NOT USE */
+	NUR_OPFLAGS_INVENTORY_READ = (1L<<3),	/**< DO NOT USE */
 	/* Keyboard : scan single -> key presses */
-	NUR_OPFLAGS_SCANSINGLE_KBD	= (1L<<4),
-	NUR_OPFLAGS_STANDALONE_APP1	= (1L<<5),
-	NUR_OPFLAGS_STANDALONE_APP2	= (1L<<6),
+	NUR_OPFLAGS_SCANSINGLE_KBD	= (1L<<4),	/**< DO NOT USE */
+	NUR_OPFLAGS_STANDALONE_APP1	= (1L<<5),	/**< DO NOT USE */
+	NUR_OPFLAGS_STANDALONE_APP2	= (1L<<6),	/**< DO NOT USE */
 	NUR_OPFLAGS_EXTIN_EVENTS 	= (1L<<7),
 	// Ext out lines 0-3 can be set to predefined state after boot.
 	NUR_OPFLAGS_STATE_EXTOUT_0 	= (1L<<8),
 	NUR_OPFLAGS_STATE_EXTOUT_1 	= (1L<<9),
 	NUR_OPFLAGS_STATE_EXTOUT_2 	= (1L<<10),
-	NUR_OPFLAGS_STATE_EXTOUT_3 	= (1L<<11)
+	NUR_OPFLAGS_STATE_EXTOUT_3 	= (1L<<11),
+	NUR_OPFLAGS_EN_TUNEEVENTS   = (1L<<12),		/**< Notification NUR_NOTIFICATION_TUNEEVENT is enabled. */
+	NUR_OPFLAGS_EN_EXACT_BLF    = (1L<<13),		/**< Return exact BLF in Hz in tag meta data frequency field. Supported only in NUR L2 modules. */
+	NUR_OPFLAGS_EN_TAG_PHASE	= (1L<<14),		/**< Return tag phase angle in units of tenths of degrees in tag meta data timestamp field. Supported only in NUR2 modules. */
 };
 
 /**

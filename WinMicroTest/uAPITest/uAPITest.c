@@ -52,6 +52,28 @@ static struct NUR_API_HANDLE gApi =
 
 static struct NUR_API_HANDLE *hApi = &gApi;
 
+// Handle unsol events
+void UnsolEventHandler(struct NUR_API_HANDLE *hNurApi)
+{
+	switch(hNurApi->resp->cmd)
+	{
+	case NUR_NOTIFY_HOPEVENT:
+		{
+			printf("NUR_NOTIFY_HOPEVENT: freqIdx=%d, freqKhz=%f\n",
+				hNurApi->resp->hopeventdata.freqIdx,
+				(double)hNurApi->resp->hopeventdata.freqKhz/1000);
+			break;
+		}
+	case NUR_NOTIFY_AUTOTUNE:
+		{
+			printf("NUR_NOTIFY_AUTOTUNE: antenna=%d, reflPower_dBm=%f\n",
+				hNurApi->resp->tuneeventdata.antenna,
+				(double)hNurApi->resp->tuneeventdata.reflPower_dBm/1000);
+			break;
+		}
+	}
+}
+
 static int NurApiEnsureMode(struct NUR_API_HANDLE *hNurApi, char desiredMode)
 {
 	int error;
@@ -174,6 +196,8 @@ int InitNurApiHandle(struct NUR_API_HANDLE *hApi)
 	// Init TX buffer
 	hApi->TxBuffer = gTxBuffer;
 	hApi->TxBufferLen = sizeof(gTxBuffer);
+
+	hApi->UnsolEventHandler = UnsolEventHandler;
 
 	return hApi->RxBufferLen;
 }
@@ -627,6 +651,39 @@ static int CalcReflPower(int iPart, int qPart, int div) {
 	return (int) (dRfdBm * 1000.0);
 }
 
+static void handle_enable_disable_events()
+{
+	struct NUR_CMD_LOADSETUP_PARAMS modulesetup;
+	int i, rc;
+
+	cls();
+	printf("* Enable/disable (and test) events *\n");
+
+	rc = NurApiGetModuleSetup(hApi, NUR_SETUP_OPFLAGS | NUR_SETUP_AUTOTUNE);
+	if (rc == NUR_SUCCESS) {
+		modulesetup = hApi->resp->loadsetup;
+		modulesetup.flags = NUR_SETUP_OPFLAGS;
+		// Enable/disable HOPEVENT notification
+		modulesetup.opFlags ^= NUR_OPFLAGS_EN_HOPEVENTS;
+		printf("NUR_OPFLAGS_EN_HOPEVENTS = %s\n", modulesetup.opFlags & NUR_OPFLAGS_EN_HOPEVENTS ? "Enabled" : "Disabled");
+		// Enable/disable TUNEEVENT notification
+		modulesetup.opFlags ^= NUR_OPFLAGS_EN_TUNEEVENTS;
+		printf("NUR_OPFLAGS_EN_TUNEEVENTS = %s\n", modulesetup.opFlags & NUR_OPFLAGS_EN_TUNEEVENTS ? "Enabled" : "Disabled");
+		if ((modulesetup.opFlags & NUR_OPFLAGS_EN_TUNEEVENTS) && !(modulesetup.autotune.mode & AUTOTUNE_MODE_ENABLE))
+			printf("!!! Enable also AutoTune if you want to see tune events !!!\n");
+		rc = NurApiSetModuleSetup(hApi, &modulesetup);
+	}
+
+	// Perform some inventory rounds
+	rc = NurApiClearTags(hApi);
+	for (i=0; i<10; i++)
+	{
+		rc = NurApiInventory(hApi, NULL);
+	}
+	printf("\n");
+	wait_key();
+}
+
 static void handle_get_reflected_power_ex()
 {
 	struct NUR_CMD_GETREFPOWEREX_RESP *refpowerex;
@@ -636,6 +693,9 @@ static void handle_get_reflected_power_ex()
 
 	cls();
 	printf("* Get Reflected Power value *\n");
+
+	//reflected_power = CalcReflPower(-32, 63, 71);
+	//printf("Reflected Power %.3f\n", (double)reflected_power/1000);
 
 	if (NurApiGetReflectedPowerEx(hApi, 0) == NUR_SUCCESS)
 	{
@@ -714,9 +774,10 @@ static void options()
 		printf("[7]\tInventoryEx select SGTIN-96 tags only\n");
 		printf("[8]\tTune antenna and enable Auto-Tune feature\n");
 		printf("[9]\tSet TX Level\n");
-		printf("[u]\tUpdate app (app_update.bin)\n");
+		printf("[e]\tEnable/disable events\n");
 		printf("[r]\tGet Reflected Power\n");
 		printf("[s]\tSwitch device mode to '%c'\n", mode == 'A' ? 'B' : 'A');
+		printf("[u]\tUpdate app (app_update.bin)\n");
 	} else {
 		printf("[1]\tConnect\n");
 	}
@@ -750,9 +811,10 @@ static BOOL do_command()
 			  }
 	case '8': handle_tune(); break;
 	case '9': handle_setup_set_txlevel(); break;			
-	case 'u': handle_app_update(); break;			
+	case 'e': handle_enable_disable_events(); break;			
 	case 'r': handle_get_reflected_power_ex(); break;			
 	case 's': handle_switch_mode(); break;			
+	case 'u': handle_app_update(); break;			
 
 	default: break;
 	}

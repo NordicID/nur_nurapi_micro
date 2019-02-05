@@ -927,6 +927,28 @@ struct NUR_CMD_GETREFPOWEREX_RESP
 	DWORD freqKhz;
 } NUR_PACKED;
 
+/**
+ * NUR_NOTIFICATION_HOPEVENT data.
+ */
+struct NUR_HOPEVENT_DATA
+{
+	BYTE hopTableId;	/**< Current hop table region id */
+	BYTE freqIdx;		/**< Index of frequency in hop table */
+	DWORD freqKhz;		/**< Frequency in kHz */
+} NUR_PACKED;
+
+/**
+ * NUR_NOTIFICATION_TUNEEVENT data.
+ */
+struct NUR_TUNEEVENT_DATA
+{
+	BYTE cap1;				/**< Tuning capacitor 1 value */
+	BYTE cap2;				/**< Tuning capacitor 2 value */
+	int reflPower_dBm;		/**< Reflected power in dBm*1000 */
+	BYTE antenna;			/**< Antenna ID */
+	DWORD freqKhz;			/**< Frequency in kHz */
+} NUR_PACKED;
+
 struct NUR_CMD_RESP
 {
 	BYTE cmd;
@@ -954,6 +976,8 @@ struct NUR_CMD_RESP
 		struct NUR_CMD_IRCONFIG_PARAMS		irconfig;
 		struct NUR_CMD_GETREFPOWER_RESP		getrefpower;
 		struct NUR_CMD_GETREFPOWEREX_RESP	getrefpowerex;
+		struct NUR_HOPEVENT_DATA			hopeventdata;
+		struct NUR_TUNEEVENT_DATA			tuneeventdata;
 
 		BYTE rawdata[1];
 	};
