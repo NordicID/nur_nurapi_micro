@@ -630,6 +630,40 @@ static void handle_app_update()
 	}
 }
 
+static void handle_cont_carrier()
+{
+	int num=-1;
+
+	cls();
+	
+	printf("Enter Channel number: " );
+	if (scanf("%d", &num) == 1) {
+		int ret = NurApiContCarrier(hApi,num);
+		
+		if(ret!=0)
+		{
+			printf("Fail to set continuous carrier: %d\n",ret );
+			wait_key();
+			return;
+
+		}
+
+		printf("Carrier on.. hit any key to stop\n");
+		_getch();
+		printf("\n");
+		NurApiStopContCarrier(hApi);
+	}
+	else
+	{
+		printf("Invalid input\n");
+		wait_key();
+	}
+			
+}
+
+
+
+
 /* Calculate a reflected power */
 static int CalcReflPower(int iPart, int qPart, int div) {
 	double dRfdBm;
@@ -778,6 +812,8 @@ static void options()
 		printf("[r]\tGet Reflected Power\n");
 		printf("[s]\tSwitch device mode to '%c'\n", mode == 'A' ? 'B' : 'A');
 		printf("[u]\tUpdate app (app_update.bin)\n");
+		printf("[c]\tContinuous carrier\n");
+
 	} else {
 		printf("[1]\tConnect\n");
 	}
@@ -814,7 +850,8 @@ static BOOL do_command()
 	case 'e': handle_enable_disable_events(); break;			
 	case 'r': handle_get_reflected_power_ex(); break;			
 	case 's': handle_switch_mode(); break;			
-	case 'u': handle_app_update(); break;			
+	case 'u': handle_app_update(); break;		
+	case 'c': handle_cont_carrier(); break;		
 
 	default: break;
 	}

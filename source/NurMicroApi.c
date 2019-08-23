@@ -851,15 +851,16 @@ int NURAPICONV NurApiSetExtCarrier(struct NUR_API_HANDLE *hNurApi, BOOL on)
 
 int NURAPICONV NurApiContCarrier(struct NUR_API_HANDLE *hNurApi, int channel)
 {
-	BYTE params[2] = { 0x22, 0x00 };
-	params[1] = channel;
-	return  NurApiXchPacket(hNurApi, NUR_CMD_CONTCARR, params, 2);	
+	TxPayloadDataPtr[0] = 0x22;
+	TxPayloadDataPtr[1] = ((BYTE)channel & 0xFF);
+	
+	return  NurApiXchPacket(hNurApi, NUR_CMD_CONTCARR, 2, DEF_TIMEOUT);	
 }
 
 int NURAPICONV NurApiStopContCarrier(struct NUR_API_HANDLE *hNurApi)
 {
-	BYTE params[1] = { 0x88 };
-	return  NurApiXchPacket(hNurApi, NUR_CMD_CONTCARR, params, 1);	
+	TxPayloadDataPtr[0] = 0x88;
+	return  NurApiXchPacket(hNurApi, NUR_CMD_CONTCARR, 1, DEF_TIMEOUT);	
 }
 
 int NURAPICONV NurApiSetConstantChannelIndex(struct NUR_API_HANDLE *hNurApi, BYTE channelIdx)
