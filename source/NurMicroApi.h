@@ -888,6 +888,25 @@ NUR_API int NURAPICONV NurApiClearTags(struct NUR_API_HANDLE *hNurApi);
 */
 NUR_API int NURAPICONV NurApiSetExtCarrier(struct NUR_API_HANDLE *hNurApi, BOOL on);
 
+/** @fn int NurApiContCarrier(struct NUR_API_HANDLE *hNurApi, int channel)
+ * 
+ * Causes the module to leave carrier on specified channel. 
+ *
+ * @param hNurApi	Handle to valid NurApi.
+ * @param channel	Set channel index to use.
+ * 
+*/ 
+NUR_API int NURAPICONV NurApiContCarrier(struct NUR_API_HANDLE *hNurApi, int channel);
+
+/** @fn int NurApiStopContCarrier(struct NUR_API_HANDLE *hNurApi)
+ * 
+ * Stop leaving carrier 
+ *
+ * @param hNurApi	Handle to valid NurApi. 
+ * 
+*/ 
+NUR_API int NURAPICONV NurApiStopContCarrier(struct NUR_API_HANDLE *hNurApi);
+
 /** @fn int NurApiSetConstantChannelIndex(HANDLE hNurApi, BYTE channelIdx)
  * 
  * Set channel index to use in current hop table.

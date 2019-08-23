@@ -849,6 +849,20 @@ int NURAPICONV NurApiSetExtCarrier(struct NUR_API_HANDLE *hNurApi, BOOL on)
 	return error;
 }
 
+int NURAPICONV NurApiContCarrier(struct NUR_API_HANDLE *hNurApi, int channel)
+{
+	TxPayloadDataPtr[0] = 0x22;
+	TxPayloadDataPtr[1] = ((BYTE)channel & 0xFF);
+	
+	return  NurApiXchPacket(hNurApi, NUR_CMD_CONTCARR, 2, DEF_TIMEOUT);	
+}
+
+int NURAPICONV NurApiStopContCarrier(struct NUR_API_HANDLE *hNurApi)
+{
+	TxPayloadDataPtr[0] = 0x88;
+	return  NurApiXchPacket(hNurApi, NUR_CMD_CONTCARR, 1, DEF_TIMEOUT);	
+}
+
 int NURAPICONV NurApiSetConstantChannelIndex(struct NUR_API_HANDLE *hNurApi, BYTE channelIdx)
 {
 	TxPayloadDataPtr[0] = (channelIdx & 0xFF);
