@@ -875,6 +875,28 @@ NUR_API int NURAPICONV NurApiFetchTags(struct NUR_API_HANDLE *hNurApi, BOOL incl
 NUR_API int NURAPICONV NurApiFetchTagAt(struct NUR_API_HANDLE *hNurApi, BOOL includeMeta, int tagNum, pFetchTagsFunction tagFunc);
 NUR_API int NURAPICONV NurApiClearTags(struct NUR_API_HANDLE *hNurApi);
 
+/** @fn int NurApiSetCustomHoptableEx(struct NUR_API_HANDLE *hNurApi, struct NUR_CUSTOMHOP_PARAMS_EX *params)
+ *
+ * Set pre-built custom hop table.
+ *
+ * @param hNurApi		Handle to valid NurApi.
+ * @param params		Pointer to the CustomHop -table.
+ *
+ * @return	Zero when succeeded, On error non-zero error code is returned.
+ *
+ * In the case of NUR_ERROR_INVALID_PARAMETER, the &hApi->resp->customhop.count shows reason behind where:
+ *   1 = Invalid custom hoptable channel count
+ *   2 = Invalid custom hoptable channel time
+ *   8 = SetCustomHoptableEx: Invalid custom hoptable max LF
+ *  16 = Invalid custom hoptable Tari
+ *  32 = Custom hoptable size mismatch
+ *  64 = Encountered invalid frequency in custom hoptable
+ * 128 = Encountered either invalid LBT threshold or maximum TX level
+ */
+NUR_API int NURAPICONV NurApiSetCustomHoptableEx(struct NUR_API_HANDLE *hNurApi, struct NUR_CUSTOMHOP_PARAMS_EX *params);
+NUR_API int NURAPICONV NurApiGetCustomHoptableEx(struct NUR_API_HANDLE *hNurApi);
+
+
 /** @fn int NurApiSetExtCarrier(HANDLE hNurApi, BOOL on)
  * 
  * Causes the module to leave carrier on after a command and not to jump to new frequency.

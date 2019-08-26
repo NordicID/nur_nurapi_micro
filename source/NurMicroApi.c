@@ -840,6 +840,33 @@ int NURAPICONV NurApiClearTags(struct NUR_API_HANDLE *hNurApi)
 	return NurApiXchPacket(hNurApi, NUR_CMD_CLEARIDBUF, 0, DEF_TIMEOUT);
 }
 
+int NURAPICONV NurApiSetCustomHoptableEx(struct NUR_API_HANDLE *hNurApi,
+										struct NUR_CUSTOMHOP_PARAMS_EX *params)
+{
+	WORD payloadSize;
+
+	if	(params->count == 0 || 
+		params->count > NUR_MAX_CUSTOM_FREQS ||
+		params->silentTime > 1000 ||
+		(params->maxBLF != 160000 && params->maxBLF != 256000 && params->maxBLF != 320000) ||
+		(params->Tari !=1 && params->Tari !=2) ||
+		params->maxTxLevel > 19 ||
+		params->lbtThresh < -90)
+		return NUR_ERROR_INVALID_PARAMETER;
+
+	payloadSize = sizeof(struct NUR_CUSTOMHOP_PARAMS_EX);
+	payloadSize -= (NUR_MAX_CUSTOM_FREQS*sizeof(DWORD) - params->count*sizeof(DWORD));
+	if (payloadSize > 0) {
+		nurMemcpy(TxPayloadDataPtr, params, payloadSize);
+	}
+	return NurApiXchPacket(hNurApi, NUR_CMD_CUSTOMHOP_EX, payloadSize, DEF_TIMEOUT);
+}
+
+int NURAPICONV NurApiGetCustomHoptableEx(struct NUR_API_HANDLE *hNurApi)
+{
+	return NurApiXchPacket(hNurApi, NUR_CMD_CUSTOMHOP_EX, 0, DEF_TIMEOUT);
+}
+
 int NURAPICONV NurApiSetExtCarrier(struct NUR_API_HANDLE *hNurApi, BOOL on)
 {
 	int error;
