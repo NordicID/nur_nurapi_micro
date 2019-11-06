@@ -1139,6 +1139,124 @@ int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi,
 #endif
 
 #ifdef CONFIG_GENERIC_WRITE
+
+static BOOL SetSingulationBlock32(BYTE *cbFlags, struct NUR_SINGULATIONBLOCK *sb, BYTE sBank, DWORD sAddress, int sMaskBitLength, BYTE *sMask)
+{
+	if (sMaskBitLength > 0 && sMaskBitLength <= NUR_MAX_SELMASKBITS && sMask != NULL)
+	{
+		DWORD byteLen = (sMaskBitLength / 8) + ((sMaskBitLength % 8) != 0);
+
+		*cbFlags |= RW_SBP;
+		sb->address32 = sAddress;
+		sb->bank = sBank;
+		sb->maskbitlen = (WORD)sMaskBitLength;
+		memcpy(sb->maskdata, sMask, byteLen);
+		return TRUE;
+	}
+	return FALSE;
+}
+
+
+int NurApiWriteEPC(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured,
+				   BYTE sBank, DWORD sAddress, int sMaskBitLength, BYTE *sMask,
+				   BYTE *newEpcBuffer, DWORD newEpcBufferLen)
+{
+	BYTE wrBuffer[NUR_MAX_EPC_LENGTH + 2];
+	DWORD paddedEpcBufferLen = 0;
+	WORD pc = 0;
+	
+	if (newEpcBufferLen < 2 || newEpcBufferLen > NUR_MAX_EPC_LENGTH || sMaskBitLength > NUR_MAX_SELMASKBITS) {
+		RETLOGERROR(NUR_ERROR_INVALID_PARAMETER);
+	}
+
+	//Length padding EPC codes to next 16 bit word boundary
+	paddedEpcBufferLen = ((newEpcBufferLen * 8) + 15)/16*2;
+	memset(wrBuffer, 0, paddedEpcBufferLen);
+
+	// Set EPC length in words
+	pc = (WORD)((paddedEpcBufferLen/2) << 11);
+	
+	// Add PC (big endian)
+	PacketWordPos(wrBuffer, NUR_HTONS(pc), 0);
+	// *(WORD*)&wrBuffer[0] = NUR_HTONS(pc);
+	printf("PC=%.4X paddedEpcLen=%d\n",pc,paddedEpcBufferLen);
+	// Add EPC
+	memcpy(&wrBuffer[2], newEpcBuffer, newEpcBufferLen);
+
+	return NurApiWriteSingulatedTag32(hNurApi,passwd, secured, sBank, sAddress, sMaskBitLength, sMask, NUR_BANK_EPC, 1, paddedEpcBufferLen + 2, wrBuffer);
+}
+
+int NURAPICONV NurApiWriteEPCByEPC(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured, BYTE *epcBuffer, DWORD epcBufferLen, BYTE *newEpcBuffer, DWORD newEpcBufferLen)
+{
+	return NurApiWriteEPC(hNurApi,passwd, secured, NUR_BANK_EPC, 32, epcBufferLen*8, epcBuffer,newEpcBuffer, newEpcBufferLen);
+}
+
+int NURAPICONV NurApiWriteTagByEPC(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured,
+							  BYTE *epcBuffer, DWORD epcBufferLen,
+							  BYTE wrBank, DWORD wrAddress, int wrByteCount, BYTE *wrBuffer)
+{
+	return NurApiWriteSingulatedTag32(hNurApi, passwd, secured, NUR_BANK_EPC, 32, epcBufferLen*8, epcBuffer, wrBank, wrAddress, wrByteCount, wrBuffer);
+}
+
+int NURAPICONV NurApiWriteSingulatedTag32(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured,
+							  BYTE sBank, DWORD sAddress, int sMaskBitLength, BYTE *sMask,
+							  BYTE wrBank, DWORD wrAddress, int wrByteCount, BYTE *wrBuffer)
+{
+	int error;
+	int x=0;
+	int wrWordCount = 0;
+	BYTE *payloadBuffer = TxPayloadDataPtr;
+	BYTE cmd = NUR_CMD_WRITE;
+	struct NUR_CMD_WRITE_PARAMS wrParams;
+		
+	memset(&wrParams, 0, sizeof(wrParams));
+
+	if (wrByteCount > 244 || sMaskBitLength > NUR_MAX_SELMASKBITS) {
+		RETLOGERROR(NUR_ERROR_INVALID_PARAMETER);
+	}
+
+	if ((wrByteCount % 2) != 0) {
+		RETLOGERROR(NUR_ERROR_NOT_WORD_BOUNDARY);
+	}
+
+	SetSingulationBlock32(&wrParams.flags, &wrParams.sb, sBank, sAddress, sMaskBitLength, sMask);
+
+	wrWordCount = wrByteCount / 2;
+	
+	wrParams.wb.address32 = wrAddress;
+	wrParams.wb.bank = wrBank;
+	wrParams.wb.wordcount = (BYTE)wrWordCount;
+	memcpy(wrParams.wb.data, wrBuffer, wrWordCount*2);
+
+	if (secured)
+	{
+		wrParams.flags |= RW_SEC;
+		wrParams.passwd = passwd;
+	}
+
+	memcpy(payloadBuffer,&wrParams,sizeof(wrParams));
+
+	printf("payloadSize=%d\n",sizeof(wrParams));
+	printf("Addr=%d\n",wrParams.wb.address32);
+	printf("Bank=%d\n",wrParams.wb.bank);	
+	printf("WordCount=%d\n",wrParams.wb.wordcount);
+	for(x=0;x<wrParams.wb.wordcount;x++)
+		printf("%.2X",wrParams.wb.data[x]);
+	printf("\nsAddress=%d\n",sAddress);
+
+	error = NurApiXchPacket(hNurApi, NUR_CMD_WRITE, sizeof(wrParams), DEF_TIMEOUT);
+	printf("ERROR=%d\n",error);
+	if (error == NUR_ERROR_G2_TAG_RESP)
+	{
+		error = TranslateTagError(hNurApi->resp->rawdata[0]);
+	}
+	
+	LOGIFERROR(error);
+
+	return error;
+}
+
+
 int NURAPICONV NurApiWriteTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_WRITE_PARAMS *params)
 {
 	int error;

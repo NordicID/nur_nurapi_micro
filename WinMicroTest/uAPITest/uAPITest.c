@@ -661,6 +661,79 @@ static void handle_cont_carrier()
 			
 }
 
+unsigned char GetBinVal(char ch)
+{
+	unsigned char value=0;
+
+	if (ch >= '0' && ch <= '9')
+            value = ch - '0';
+        else if (ch >= 'A' && ch <= 'F')
+            value = (ch - 'A' + 10);
+        else if (ch >= 'a' && ch <= 'f')
+            value = (ch - 'a' + 10);
+
+		return value;
+}
+
+void HexStringToBin(char* str,BYTE* buf,int length)
+{
+	int strPtr=0;
+	int x=0;
+	if(length>62) length=62;
+	for(x=0;x<length;x++)
+	{
+		strPtr=x*2;
+		buf[x]=GetBinVal(str[strPtr]);
+		buf[x]<<=4;
+		buf[x]+=GetBinVal(str[strPtr+1]);
+	}    
+}
+
+
+
+static void handle_writeEPC()
+{
+	int num=-1;
+	int x=0;
+	char curepc[32];
+	char wrepc[32];
+	BYTE epcBuf[32];
+	BYTE wrBuf[32];
+	int epcBufLen,wrBufLen;
+
+	cls();
+	
+	printf("Enter Current EPC: " );
+	if (scanf("%s", &curepc) == 1)
+	{
+		printf("Enter new EPC: " );
+		if (scanf("%s", &wrepc) == 1) 
+		{			
+			//convert HEX string to byte array.
+			epcBufLen=strlen(curepc)/2;
+			HexStringToBin(curepc,epcBuf,epcBufLen*2);
+			wrBufLen = strlen(wrepc)/2;
+			HexStringToBin(wrepc,wrBuf,wrBufLen*2);
+
+			printf("EPC to singlulate:");
+			for(x=0;x<epcBufLen;x++)
+				printf("%.2X",epcBuf[x]);
+			printf("\n");
+			printf("New EPC to write:");
+			for(x=0;x<wrBufLen;x++)
+				printf("%.2X",wrBuf[x]);
+			printf("\n");
+
+			x = NurApiWriteEPCByEPC(hApi,0,FALSE,epcBuf,epcBufLen,wrBuf,wrBufLen);
+			printf("Write return value=%d\n",x);
+			wait_key();
+			return;
+		}			
+	}
+	
+	printf("Invalid input\n");
+	wait_key();	
+}
 
 
 
@@ -813,6 +886,7 @@ static void options()
 		printf("[s]\tSwitch device mode to '%c'\n", mode == 'A' ? 'B' : 'A');
 		printf("[u]\tUpdate app (app_update.bin)\n");
 		printf("[c]\tContinuous carrier\n");
+		printf("[w]\tWrite EPC\n");
 
 	} else {
 		printf("[1]\tConnect\n");
@@ -852,6 +926,7 @@ static BOOL do_command()
 	case 's': handle_switch_mode(); break;			
 	case 'u': handle_app_update(); break;		
 	case 'c': handle_cont_carrier(); break;		
+	case 'w': handle_writeEPC(); break;		
 
 	default: break;
 	}
