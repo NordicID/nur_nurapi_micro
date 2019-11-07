@@ -675,18 +675,22 @@ unsigned char GetBinVal(char ch)
 		return value;
 }
 
-void HexStringToBin(char* str,BYTE* buf,int length)
+int HexStringToBin(char* str,BYTE* buf,int length)
 {
 	int strPtr=0;
 	int x=0;
+	
 	if(length>62) length=62;
+		
 	for(x=0;x<length;x++)
-	{
+	{			
 		strPtr=x*2;
 		buf[x]=GetBinVal(str[strPtr]);
 		buf[x]<<=4;
-		buf[x]+=GetBinVal(str[strPtr+1]);
+		buf[x]+=GetBinVal(str[strPtr+1]);		
 	}    
+
+	return x/2;
 }
 
 
@@ -695,42 +699,57 @@ static void handle_writeEPC()
 {
 	int num=-1;
 	int x=0;
-	char curepc[32];
-	char wrepc[32];
-	BYTE epcBuf[32];
-	BYTE wrBuf[32];
+	char curepc[32];	//Current EPC as string
+	char newepc[32];	//New Epc to write as string
+	BYTE epcBuf[62];
+	BYTE wrBuf[62];
 	int epcBufLen,wrBufLen;
 
 	cls();
-	
-	printf("Enter Current EPC: " );
-	if (scanf("%s", &curepc) == 1)
-	{
-		printf("Enter new EPC: " );
-		if (scanf("%s", &wrepc) == 1) 
-		{			
-			//convert HEX string to byte array.
-			epcBufLen=strlen(curepc)/2;
-			HexStringToBin(curepc,epcBuf,epcBufLen*2);
-			wrBufLen = strlen(wrepc)/2;
-			HexStringToBin(wrepc,wrBuf,wrBufLen*2);
 
-			printf("EPC to singlulate:");
-			for(x=0;x<epcBufLen;x++)
-				printf("%.2X",epcBuf[x]);
-			printf("\n");
-			printf("New EPC to write:");
-			for(x=0;x<wrBufLen;x++)
-				printf("%.2X",wrBuf[x]);
-			printf("\n");
+	printf("Enter Current EPC: " );	
+	if (scanf("%s", &curepc) == 1)
+	if(strlen(curepc) > 1)
+	{
+		if ((strlen(curepc) % 2) != 0) {
+				printf("EPC must be pairs of two hex chars\n");
+				goto INVALID_INPUT;
+		}
+
+		printf("Enter new EPC: " );	
+		if (scanf("%s", &newepc) == 1) 
+		if(strlen(newepc) > 1)
+		{			
+			if ((strlen(newepc) % 2) != 0) {
+				printf("EPC must be pairs of two hex chars\n");
+				goto INVALID_INPUT;
+			}
+
+			//convert HEX string to byte array.			
+			epcBufLen = HexStringToBin(curepc,epcBuf,strlen(curepc));
+			wrBufLen = HexStringToBin(newepc,wrBuf,strlen(newepc));
+
+			//printf("epcLen=%d newEpcLen=%d\n",epcBufLen,wrBufLen);
 
 			x = NurApiWriteEPCByEPC(hApi,0,FALSE,epcBuf,epcBufLen,wrBuf,wrBufLen);
-			printf("Write return value=%d\n",x);
+			
+			if(x==4106)
+			{
+				printf("New EPC must be in word boundaries like: aaaabbbbcccc\n");
+				goto INVALID_INPUT;
+			}
+
+			if(x==NUR_SUCCESS)
+				printf("Write success!\n");
+			else printf("Write error = %d\n",x);			
+
 			wait_key();
 			return;
 		}			
 	}
-	
+
+INVALID_INPUT:
+
 	printf("Invalid input\n");
 	wait_key();	
 }

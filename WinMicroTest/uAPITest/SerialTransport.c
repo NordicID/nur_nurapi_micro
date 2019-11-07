@@ -123,6 +123,7 @@ static int serial_read(struct NUR_API_HANDLE *hNurApi, BYTE *buffer, DWORD buffe
 
 static int serial_write(struct NUR_API_HANDLE *hNurApi, BYTE *buffer, DWORD bufferLen, DWORD *bytesWritten)
 {
+	int x;
 	DWORD dwWritten = 0;
 	DWORD totalWritten = 0;
 	DWORD dwError;
@@ -148,7 +149,18 @@ static int serial_write(struct NUR_API_HANDLE *hNurApi, BYTE *buffer, DWORD buff
 			}
 		}
 
+		/*
+		printf("WR:");
+		for(x=0;x<dwWritten;x++)
+		{
+			printf("%.2X",buffer[totalWritten + x]);
+		}
+		printf("\n");
+		*/
+
 		totalWritten += dwWritten;
+
+		
 
 		if (dwWritten == 0) {
 			return NUR_ERROR_TR_TIMEOUT;

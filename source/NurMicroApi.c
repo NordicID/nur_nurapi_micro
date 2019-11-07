@@ -1140,31 +1140,14 @@ int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi,
 
 #ifdef CONFIG_GENERIC_WRITE
 
-static BOOL SetSingulationBlock32(BYTE *cbFlags, struct NUR_SINGULATIONBLOCK *sb, BYTE sBank, DWORD sAddress, int sMaskBitLength, BYTE *sMask)
-{
-	if (sMaskBitLength > 0 && sMaskBitLength <= NUR_MAX_SELMASKBITS && sMask != NULL)
-	{
-		DWORD byteLen = (sMaskBitLength / 8) + ((sMaskBitLength % 8) != 0);
-
-		*cbFlags |= RW_SBP;
-		sb->address32 = sAddress;
-		sb->bank = sBank;
-		sb->maskbitlen = (WORD)sMaskBitLength;
-		memcpy(sb->maskdata, sMask, byteLen);
-		return TRUE;
-	}
-	return FALSE;
-}
-
-
 int NurApiWriteEPC(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured,
 				   BYTE sBank, DWORD sAddress, int sMaskBitLength, BYTE *sMask,
 				   BYTE *newEpcBuffer, DWORD newEpcBufferLen)
-{
+{	
 	BYTE wrBuffer[NUR_MAX_EPC_LENGTH + 2];
 	DWORD paddedEpcBufferLen = 0;
 	WORD pc = 0;
-	
+			
 	if (newEpcBufferLen < 2 || newEpcBufferLen > NUR_MAX_EPC_LENGTH || sMaskBitLength > NUR_MAX_SELMASKBITS) {
 		RETLOGERROR(NUR_ERROR_INVALID_PARAMETER);
 	}
@@ -1178,10 +1161,13 @@ int NurApiWriteEPC(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured,
 	
 	// Add PC (big endian)
 	PacketWordPos(wrBuffer, NUR_HTONS(pc), 0);
-	// *(WORD*)&wrBuffer[0] = NUR_HTONS(pc);
-	printf("PC=%.4X paddedEpcLen=%d\n",pc,paddedEpcBufferLen);
+	
 	// Add EPC
 	memcpy(&wrBuffer[2], newEpcBuffer, newEpcBufferLen);
+		
+	if ((newEpcBufferLen % 2) != 0) {
+		return NUR_ERROR_NOT_WORD_BOUNDARY;
+	}
 
 	return NurApiWriteSingulatedTag32(hNurApi,passwd, secured, sBank, sAddress, sMaskBitLength, sMask, NUR_BANK_EPC, 1, paddedEpcBufferLen + 2, wrBuffer);
 }
@@ -1209,17 +1195,29 @@ int NURAPICONV NurApiWriteSingulatedTag32(struct NUR_API_HANDLE *hNurApi, DWORD 
 	BYTE cmd = NUR_CMD_WRITE;
 	struct NUR_CMD_WRITE_PARAMS wrParams;
 		
+	//printf("NurApiWriteSingulatedTag32 Bank=%x sAddress=%x maskBitLen=%d wrBank=%x wrAddr=%x wrByteCnt=%d\n",sBank,sAddress,sMaskBitLength,wrBank,wrAddress,wrByteCount);
+
 	memset(&wrParams, 0, sizeof(wrParams));
 
 	if (wrByteCount > 244 || sMaskBitLength > NUR_MAX_SELMASKBITS) {
-		RETLOGERROR(NUR_ERROR_INVALID_PARAMETER);
+		return NUR_ERROR_INVALID_PARAMETER;
 	}
 
 	if ((wrByteCount % 2) != 0) {
-		RETLOGERROR(NUR_ERROR_NOT_WORD_BOUNDARY);
+		return NUR_ERROR_NOT_WORD_BOUNDARY;
+	}
+	
+	if (sMaskBitLength > 0 && sMaskBitLength <= NUR_MAX_SELMASKBITS && sMask != NULL)
+	{
+		DWORD byteLen = (sMaskBitLength / 8) + ((sMaskBitLength % 8) != 0);
+
+		wrParams.flags |= RW_SBP;
+		wrParams.sb.address32 = sAddress;
+		wrParams.sb.bank = sBank;
+		wrParams.sb.maskbitlen = (WORD)sMaskBitLength;
+		memcpy(wrParams.sb.maskdata, sMask, byteLen);				
 	}
 
-	SetSingulationBlock32(&wrParams.flags, &wrParams.sb, sBank, sAddress, sMaskBitLength, sMask);
 
 	wrWordCount = wrByteCount / 2;
 	
@@ -1234,25 +1232,7 @@ int NURAPICONV NurApiWriteSingulatedTag32(struct NUR_API_HANDLE *hNurApi, DWORD 
 		wrParams.passwd = passwd;
 	}
 
-	memcpy(payloadBuffer,&wrParams,sizeof(wrParams));
-
-	printf("payloadSize=%d\n",sizeof(wrParams));
-	printf("Addr=%d\n",wrParams.wb.address32);
-	printf("Bank=%d\n",wrParams.wb.bank);	
-	printf("WordCount=%d\n",wrParams.wb.wordcount);
-	for(x=0;x<wrParams.wb.wordcount;x++)
-		printf("%.2X",wrParams.wb.data[x]);
-	printf("\nsAddress=%d\n",sAddress);
-
-	error = NurApiXchPacket(hNurApi, NUR_CMD_WRITE, sizeof(wrParams), DEF_TIMEOUT);
-	printf("ERROR=%d\n",error);
-	if (error == NUR_ERROR_G2_TAG_RESP)
-	{
-		error = TranslateTagError(hNurApi->resp->rawdata[0]);
-	}
-	
-	LOGIFERROR(error);
-
+	error=NurApiWriteTag(hNurApi,&wrParams);
 	return error;
 }
 
@@ -1266,7 +1246,7 @@ int NURAPICONV NurApiWriteTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_WRI
 	struct NUR_WRITEBLOCK *wb = &params->wb;
 
 	if (params->wb.wordcount < 1 || params->wb.wordcount > 127) {
-		RETLOGERROR(NUR_ERROR_INVALID_PARAMETER);
+		return NUR_ERROR_INVALID_PARAMETER;
 	}
 
 	// Write "Common RW" block and "Singulation" block to payload buffer
