@@ -115,6 +115,9 @@ extern "C" {
 /** Maximum length of select mask in bytes. */
 #define NUR_MAX_SELMASK			(62)
 
+/** Maximum length of select mask in bits. */
+#define NUR_MAX_SELMASKBITS		(NUR_MAX_SELMASK * 8)
+
 /** Default NUR module baudrate. */
 #define NUR_DEFAULT_BAUDRATE	(115200)
 
@@ -951,6 +954,10 @@ NUR_API int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi, struct NUR_
 #endif
 
 #ifdef CONFIG_GENERIC_WRITE
+NUR_API int NURAPICONV NurApiWriteEPC(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured,BYTE sBank, DWORD sAddress, int sMaskBitLength, BYTE *sMask, BYTE *newEpcBuffer, DWORD newEpcBufferLen);
+NUR_API int NURAPICONV NurApiWriteEPCByEPC(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured, BYTE *epcBuffer, DWORD epcBufferLen, BYTE *newEpcBuffer, DWORD newEpcBufferLen);
+NUR_API int NURAPICONV NurApiWriteTagByEPC(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured, BYTE *epcBuffer, DWORD epcBufferLen, BYTE wrBank, DWORD wrAddress, int wrByteCount, BYTE *wrBuffer);
+NUR_API int NURAPICONV NurApiWriteSingulatedTag32(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured, BYTE sBank, DWORD sAddress, int sMaskBitLength, BYTE *sMask, BYTE wrBank, DWORD wrAddress, int wrByteCount, BYTE *wrBuffer);
 NUR_API int NURAPICONV NurApiWriteTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_WRITE_PARAMS *params);
 #endif
 
@@ -1030,5 +1037,17 @@ extern }
 #define SET_QWORD(_qwDst, _qwSrc)	_qwDst = _qwSrc
 
 #endif	
+
+#define NUR_HTONS(n) (((((unsigned short)(n) & 0xFF)) << 8) | (((unsigned short)(n) & 0xFF00) >> 8))
+
+#define NUR_HTONL(n) (((((unsigned long)(n) & 0xFF)) << 24) | \
+                  ((((unsigned long)(n) & 0xFF00)) << 8) | \
+                  ((((unsigned long)(n) & 0xFF0000)) >> 8) | \
+                  ((((unsigned long)(n) & 0xFF000000)) >> 24))
+
+#define NUR_NTOHL(n) (((((unsigned long)(n) & 0xFF)) << 24) | \
+                  ((((unsigned long)(n) & 0xFF00)) << 8) | \
+                  ((((unsigned long)(n) & 0xFF0000)) >> 8) | \
+                  ((((unsigned long)(n) & 0xFF000000)) >> 24))
 
 #endif
