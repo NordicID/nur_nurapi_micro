@@ -115,6 +115,9 @@ extern "C" {
 /** Maximum length of select mask in bytes. */
 #define NUR_MAX_SELMASK			(62)
 
+/** Maximum length of select mask in bits. */
+#define NUR_MAX_SELMASKBITS		(NUR_MAX_SELMASK * 8)
+
 /** Default NUR module baudrate. */
 #define NUR_DEFAULT_BAUDRATE	(115200)
 
@@ -538,18 +541,21 @@ enum NUR_OPFLAGS
 {
 	NUR_OPFLAGS_EN_HOPEVENTS = (1L<<0),		/**< Notification NUR_NOTIFICATION_HOPEVENT is enabled. */
 	NUR_OPFLAGS_INVSTREAM_ZEROS = (1L<<1),	/**< Inventory stream frunction will report zero count inventory rounds also. */
-	NUR_OPFLAGS_INVENTORY_TID = (1L<<2),
-	NUR_OPFLAGS_INVENTORY_READ = (1L<<3),
+	NUR_OPFLAGS_INVENTORY_TID = (1L<<2),	/**< DO NOT USE */
+	NUR_OPFLAGS_INVENTORY_READ = (1L<<3),	/**< DO NOT USE */
 	/* Keyboard : scan single -> key presses */
-	NUR_OPFLAGS_SCANSINGLE_KBD	= (1L<<4),
-	NUR_OPFLAGS_STANDALONE_APP1	= (1L<<5),
-	NUR_OPFLAGS_STANDALONE_APP2	= (1L<<6),
+	NUR_OPFLAGS_SCANSINGLE_KBD	= (1L<<4),	/**< DO NOT USE */
+	NUR_OPFLAGS_STANDALONE_APP1	= (1L<<5),	/**< DO NOT USE */
+	NUR_OPFLAGS_STANDALONE_APP2	= (1L<<6),	/**< DO NOT USE */
 	NUR_OPFLAGS_EXTIN_EVENTS 	= (1L<<7),
 	// Ext out lines 0-3 can be set to predefined state after boot.
 	NUR_OPFLAGS_STATE_EXTOUT_0 	= (1L<<8),
 	NUR_OPFLAGS_STATE_EXTOUT_1 	= (1L<<9),
 	NUR_OPFLAGS_STATE_EXTOUT_2 	= (1L<<10),
-	NUR_OPFLAGS_STATE_EXTOUT_3 	= (1L<<11)
+	NUR_OPFLAGS_STATE_EXTOUT_3 	= (1L<<11),
+	NUR_OPFLAGS_EN_TUNEEVENTS   = (1L<<12),		/**< Notification NUR_NOTIFICATION_TUNEEVENT is enabled. */
+	NUR_OPFLAGS_EN_EXACT_BLF    = (1L<<13),		/**< Return exact BLF in Hz in tag meta data frequency field. Supported only in NUR L2 modules. */
+	NUR_OPFLAGS_EN_TAG_PHASE	= (1L<<14),		/**< Return tag phase angle in units of tenths of degrees in tag meta data timestamp field. Supported only in NUR2 modules. */
 };
 
 /**
@@ -872,6 +878,28 @@ NUR_API int NURAPICONV NurApiFetchTags(struct NUR_API_HANDLE *hNurApi, BOOL incl
 NUR_API int NURAPICONV NurApiFetchTagAt(struct NUR_API_HANDLE *hNurApi, BOOL includeMeta, int tagNum, pFetchTagsFunction tagFunc);
 NUR_API int NURAPICONV NurApiClearTags(struct NUR_API_HANDLE *hNurApi);
 
+/** @fn int NurApiSetCustomHoptableEx(struct NUR_API_HANDLE *hNurApi, struct NUR_CUSTOMHOP_PARAMS_EX *params)
+ *
+ * Set pre-built custom hop table.
+ *
+ * @param hNurApi		Handle to valid NurApi.
+ * @param params		Pointer to the CustomHop -table.
+ *
+ * @return	Zero when succeeded, On error non-zero error code is returned.
+ *
+ * In the case of NUR_ERROR_INVALID_PARAMETER, the &hApi->resp->customhop.count shows reason behind where:
+ *   1 = Invalid custom hoptable channel count
+ *   2 = Invalid custom hoptable channel time
+ *   8 = SetCustomHoptableEx: Invalid custom hoptable max LF
+ *  16 = Invalid custom hoptable Tari
+ *  32 = Custom hoptable size mismatch
+ *  64 = Encountered invalid frequency in custom hoptable
+ * 128 = Encountered either invalid LBT threshold or maximum TX level
+ */
+NUR_API int NURAPICONV NurApiSetCustomHoptableEx(struct NUR_API_HANDLE *hNurApi, struct NUR_CUSTOMHOP_PARAMS_EX *params);
+NUR_API int NURAPICONV NurApiGetCustomHoptableEx(struct NUR_API_HANDLE *hNurApi);
+
+
 /** @fn int NurApiSetExtCarrier(HANDLE hNurApi, BOOL on)
  * 
  * Causes the module to leave carrier on after a command and not to jump to new frequency.
@@ -884,6 +912,25 @@ NUR_API int NURAPICONV NurApiClearTags(struct NUR_API_HANDLE *hNurApi);
  * @return	Zero when successful. A non-zero error code otherwise.
 */
 NUR_API int NURAPICONV NurApiSetExtCarrier(struct NUR_API_HANDLE *hNurApi, BOOL on);
+
+/** @fn int NurApiContCarrier(struct NUR_API_HANDLE *hNurApi, int channel)
+ * 
+ * Causes the module to leave carrier on specified channel. 
+ *
+ * @param hNurApi	Handle to valid NurApi.
+ * @param channel	Set channel index to use.
+ * 
+*/ 
+NUR_API int NURAPICONV NurApiContCarrier(struct NUR_API_HANDLE *hNurApi, int channel);
+
+/** @fn int NurApiStopContCarrier(struct NUR_API_HANDLE *hNurApi)
+ * 
+ * Stop leaving carrier 
+ *
+ * @param hNurApi	Handle to valid NurApi. 
+ * 
+*/ 
+NUR_API int NURAPICONV NurApiStopContCarrier(struct NUR_API_HANDLE *hNurApi);
 
 /** @fn int NurApiSetConstantChannelIndex(HANDLE hNurApi, BYTE channelIdx)
  * 
@@ -907,6 +954,10 @@ NUR_API int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi, struct NUR_
 #endif
 
 #ifdef CONFIG_GENERIC_WRITE
+NUR_API int NURAPICONV NurApiWriteEPC(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured,BYTE sBank, DWORD sAddress, int sMaskBitLength, BYTE *sMask, BYTE *newEpcBuffer, DWORD newEpcBufferLen);
+NUR_API int NURAPICONV NurApiWriteEPCByEPC(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured, BYTE *epcBuffer, DWORD epcBufferLen, BYTE *newEpcBuffer, DWORD newEpcBufferLen);
+NUR_API int NURAPICONV NurApiWriteTagByEPC(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured, BYTE *epcBuffer, DWORD epcBufferLen, BYTE wrBank, DWORD wrAddress, int wrByteCount, BYTE *wrBuffer);
+NUR_API int NURAPICONV NurApiWriteSingulatedTag32(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured, BYTE sBank, DWORD sAddress, int sMaskBitLength, BYTE *sMask, BYTE wrBank, DWORD wrAddress, int wrByteCount, BYTE *wrBuffer);
 NUR_API int NURAPICONV NurApiWriteTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_WRITE_PARAMS *params);
 #endif
 
@@ -986,5 +1037,17 @@ extern }
 #define SET_QWORD(_qwDst, _qwSrc)	_qwDst = _qwSrc
 
 #endif	
+
+#define NUR_HTONS(n) (((((unsigned short)(n) & 0xFF)) << 8) | (((unsigned short)(n) & 0xFF00) >> 8))
+
+#define NUR_HTONL(n) (((((unsigned long)(n) & 0xFF)) << 24) | \
+                  ((((unsigned long)(n) & 0xFF00)) << 8) | \
+                  ((((unsigned long)(n) & 0xFF0000)) >> 8) | \
+                  ((((unsigned long)(n) & 0xFF000000)) >> 24))
+
+#define NUR_NTOHL(n) (((((unsigned long)(n) & 0xFF)) << 24) | \
+                  ((((unsigned long)(n) & 0xFF00)) << 8) | \
+                  ((((unsigned long)(n) & 0xFF0000)) >> 8) | \
+                  ((((unsigned long)(n) & 0xFF000000)) >> 24))
 
 #endif

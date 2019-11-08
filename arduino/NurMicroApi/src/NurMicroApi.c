@@ -840,6 +840,33 @@ int NURAPICONV NurApiClearTags(struct NUR_API_HANDLE *hNurApi)
 	return NurApiXchPacket(hNurApi, NUR_CMD_CLEARIDBUF, 0, DEF_TIMEOUT);
 }
 
+int NURAPICONV NurApiSetCustomHoptableEx(struct NUR_API_HANDLE *hNurApi,
+										struct NUR_CUSTOMHOP_PARAMS_EX *params)
+{
+	WORD payloadSize;
+
+	if	(params->count == 0 || 
+		params->count > NUR_MAX_CUSTOM_FREQS ||
+		params->silentTime > 1000 ||
+		(params->maxBLF != 160000 && params->maxBLF != 256000 && params->maxBLF != 320000) ||
+		(params->Tari !=1 && params->Tari !=2) ||
+		params->maxTxLevel > 19 ||
+		params->lbtThresh < -90)
+		return NUR_ERROR_INVALID_PARAMETER;
+
+	payloadSize = sizeof(struct NUR_CUSTOMHOP_PARAMS_EX);
+	payloadSize -= (NUR_MAX_CUSTOM_FREQS*sizeof(DWORD) - params->count*sizeof(DWORD));
+	if (payloadSize > 0) {
+		nurMemcpy(TxPayloadDataPtr, params, payloadSize);
+	}
+	return NurApiXchPacket(hNurApi, NUR_CMD_CUSTOMHOP_EX, payloadSize, DEF_TIMEOUT);
+}
+
+int NURAPICONV NurApiGetCustomHoptableEx(struct NUR_API_HANDLE *hNurApi)
+{
+	return NurApiXchPacket(hNurApi, NUR_CMD_CUSTOMHOP_EX, 0, DEF_TIMEOUT);
+}
+
 int NURAPICONV NurApiSetExtCarrier(struct NUR_API_HANDLE *hNurApi, BOOL on)
 {
 	int error;
@@ -847,6 +874,20 @@ int NURAPICONV NurApiSetExtCarrier(struct NUR_API_HANDLE *hNurApi, BOOL on)
 
 	error = NurApiXchPacket(hNurApi, NUR_CMD_CARRIER, 4, DEF_TIMEOUT);
 	return error;
+}
+
+int NURAPICONV NurApiContCarrier(struct NUR_API_HANDLE *hNurApi, int channel)
+{
+	TxPayloadDataPtr[0] = 0x22;
+	TxPayloadDataPtr[1] = ((BYTE)channel & 0xFF);
+	
+	return  NurApiXchPacket(hNurApi, NUR_CMD_CONTCARR, 2, DEF_TIMEOUT);	
+}
+
+int NURAPICONV NurApiStopContCarrier(struct NUR_API_HANDLE *hNurApi)
+{
+	TxPayloadDataPtr[0] = 0x88;
+	return  NurApiXchPacket(hNurApi, NUR_CMD_CONTCARR, 1, DEF_TIMEOUT);	
 }
 
 int NURAPICONV NurApiSetConstantChannelIndex(struct NUR_API_HANDLE *hNurApi, BYTE channelIdx)
@@ -1098,6 +1139,104 @@ int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi,
 #endif
 
 #ifdef CONFIG_GENERIC_WRITE
+
+int NurApiWriteEPC(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured,
+				   BYTE sBank, DWORD sAddress, int sMaskBitLength, BYTE *sMask,
+				   BYTE *newEpcBuffer, DWORD newEpcBufferLen)
+{	
+	BYTE wrBuffer[NUR_MAX_EPC_LENGTH + 2];
+	DWORD paddedEpcBufferLen = 0;
+	WORD pc = 0;
+			
+	if (newEpcBufferLen < 2 || newEpcBufferLen > NUR_MAX_EPC_LENGTH || sMaskBitLength > NUR_MAX_SELMASKBITS) {
+		RETLOGERROR(NUR_ERROR_INVALID_PARAMETER);
+	}
+
+	//Length padding EPC codes to next 16 bit word boundary
+	paddedEpcBufferLen = ((newEpcBufferLen * 8) + 15)/16*2;
+	memset(wrBuffer, 0, paddedEpcBufferLen);
+
+	// Set EPC length in words
+	pc = (WORD)((paddedEpcBufferLen/2) << 11);
+	
+	// Add PC (big endian)
+	PacketWordPos(wrBuffer, NUR_HTONS(pc), 0);
+	
+	// Add EPC
+	memcpy(&wrBuffer[2], newEpcBuffer, newEpcBufferLen);
+		
+	if ((newEpcBufferLen % 2) != 0) {
+		return NUR_ERROR_NOT_WORD_BOUNDARY;
+	}
+
+	return NurApiWriteSingulatedTag32(hNurApi,passwd, secured, sBank, sAddress, sMaskBitLength, sMask, NUR_BANK_EPC, 1, paddedEpcBufferLen + 2, wrBuffer);
+}
+
+int NURAPICONV NurApiWriteEPCByEPC(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured, BYTE *epcBuffer, DWORD epcBufferLen, BYTE *newEpcBuffer, DWORD newEpcBufferLen)
+{
+	return NurApiWriteEPC(hNurApi,passwd, secured, NUR_BANK_EPC, 32, epcBufferLen*8, epcBuffer,newEpcBuffer, newEpcBufferLen);
+}
+
+int NURAPICONV NurApiWriteTagByEPC(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured,
+							  BYTE *epcBuffer, DWORD epcBufferLen,
+							  BYTE wrBank, DWORD wrAddress, int wrByteCount, BYTE *wrBuffer)
+{
+	return NurApiWriteSingulatedTag32(hNurApi, passwd, secured, NUR_BANK_EPC, 32, epcBufferLen*8, epcBuffer, wrBank, wrAddress, wrByteCount, wrBuffer);
+}
+
+int NURAPICONV NurApiWriteSingulatedTag32(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured,
+							  BYTE sBank, DWORD sAddress, int sMaskBitLength, BYTE *sMask,
+							  BYTE wrBank, DWORD wrAddress, int wrByteCount, BYTE *wrBuffer)
+{
+	int error;
+	int x=0;
+	int wrWordCount = 0;
+	BYTE *payloadBuffer = TxPayloadDataPtr;
+	BYTE cmd = NUR_CMD_WRITE;
+	struct NUR_CMD_WRITE_PARAMS wrParams;
+		
+	//printf("NurApiWriteSingulatedTag32 Bank=%x sAddress=%x maskBitLen=%d wrBank=%x wrAddr=%x wrByteCnt=%d\n",sBank,sAddress,sMaskBitLength,wrBank,wrAddress,wrByteCount);
+
+	memset(&wrParams, 0, sizeof(wrParams));
+
+	if (wrByteCount > 244 || sMaskBitLength > NUR_MAX_SELMASKBITS) {
+		return NUR_ERROR_INVALID_PARAMETER;
+	}
+
+	if ((wrByteCount % 2) != 0) {
+		return NUR_ERROR_NOT_WORD_BOUNDARY;
+	}
+	
+	if (sMaskBitLength > 0 && sMaskBitLength <= NUR_MAX_SELMASKBITS && sMask != NULL)
+	{
+		DWORD byteLen = (sMaskBitLength / 8) + ((sMaskBitLength % 8) != 0);
+
+		wrParams.flags |= RW_SBP;
+		wrParams.sb.address32 = sAddress;
+		wrParams.sb.bank = sBank;
+		wrParams.sb.maskbitlen = (WORD)sMaskBitLength;
+		memcpy(wrParams.sb.maskdata, sMask, byteLen);				
+	}
+
+
+	wrWordCount = wrByteCount / 2;
+	
+	wrParams.wb.address32 = wrAddress;
+	wrParams.wb.bank = wrBank;
+	wrParams.wb.wordcount = (BYTE)wrWordCount;
+	memcpy(wrParams.wb.data, wrBuffer, wrWordCount*2);
+
+	if (secured)
+	{
+		wrParams.flags |= RW_SEC;
+		wrParams.passwd = passwd;
+	}
+
+	error=NurApiWriteTag(hNurApi,&wrParams);
+	return error;
+}
+
+
 int NURAPICONV NurApiWriteTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_WRITE_PARAMS *params)
 {
 	int error;
@@ -1107,7 +1246,7 @@ int NURAPICONV NurApiWriteTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_WRI
 	struct NUR_WRITEBLOCK *wb = &params->wb;
 
 	if (params->wb.wordcount < 1 || params->wb.wordcount > 127) {
-		RETLOGERROR(NUR_ERROR_INVALID_PARAMETER);
+		return NUR_ERROR_INVALID_PARAMETER;
 	}
 
 	// Write "Common RW" block and "Singulation" block to payload buffer

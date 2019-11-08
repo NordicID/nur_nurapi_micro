@@ -927,6 +927,44 @@ struct NUR_CMD_GETREFPOWEREX_RESP
 	DWORD freqKhz;
 } NUR_PACKED;
 
+/**
+ * NUR_NOTIFICATION_HOPEVENT data.
+ */
+struct NUR_HOPEVENT_DATA
+{
+	BYTE hopTableId;	/**< Current hop table region id */
+	BYTE freqIdx;		/**< Index of frequency in hop table */
+	DWORD freqKhz;		/**< Frequency in kHz */
+} NUR_PACKED;
+
+/**
+ * NUR_NOTIFICATION_TUNEEVENT data.
+ */
+struct NUR_TUNEEVENT_DATA
+{
+	BYTE cap1;				/**< Tuning capacitor 1 value */
+	BYTE cap2;				/**< Tuning capacitor 2 value */
+	int reflPower_dBm;		/**< Reflected power in dBm*1000 */
+	BYTE antenna;			/**< Antenna ID */
+	DWORD freqKhz;			/**< Frequency in kHz */
+} NUR_PACKED;
+
+/**
+ * Contains the custom hoptable configuration, extended version: + LBT + max TX level.
+ * @sa NurApiGetCustomHoptableEx()
+ */
+struct NUR_CUSTOMHOP_PARAMS_EX
+{
+	DWORD count;        /**< Number of channels in this table. */
+	DWORD chTime;       /**< Channel time in milliseconds. */
+	DWORD silentTime;   /**< Silent time in milliseconds, if any, between channel change. */
+	DWORD maxBLF;       /**< Maximum link frequency. */
+	DWORD Tari;         /**< Tari: 1=12.5 and 2 = 25. */
+	int lbtThresh;      /**< LBT threshold; minimum value is -90. */
+	DWORD maxTxLevel;   /**< Maximum TX level; range is 0...19. */
+	DWORD freqs[NUR_MAX_CUSTOM_FREQS];  /**< Frequencies in kHz. Number of populated antries is stated with the 'count'. */
+} NUR_PACKED;
+
 struct NUR_CMD_RESP
 {
 	BYTE cmd;
@@ -952,8 +990,11 @@ struct NUR_CMD_RESP
     	struct NUR_SINGLETUNE_RESP			tuneres;
 		struct NUR_CMD_DEVCAPS_RESP			devcaps;		
 		struct NUR_CMD_IRCONFIG_PARAMS		irconfig;
+		struct NUR_CUSTOMHOP_PARAMS_EX		customhop;
 		struct NUR_CMD_GETREFPOWER_RESP		getrefpower;
 		struct NUR_CMD_GETREFPOWEREX_RESP	getrefpowerex;
+		struct NUR_HOPEVENT_DATA			hopeventdata;
+		struct NUR_TUNEEVENT_DATA			tuneeventdata;
 
 		BYTE rawdata[1];
 	};
