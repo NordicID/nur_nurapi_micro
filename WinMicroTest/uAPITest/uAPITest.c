@@ -410,7 +410,7 @@ static void handle_setup_set_txlevel()
 int FetchTagsFunction(struct NUR_API_HANDLE *hNurApi, struct NUR_IDBUFFER_ENTRY *tag)
 {
 	int n;
-	printf("Antenna %d, RSSI = %d (%d%%) ", tag->antennaId, tag->rssi, tag->scaledRssi);
+	printf("Antenna %d, RSSI = %d (%d%%) ", tag->antennaId+1, tag->rssi, tag->scaledRssi);
 	printf("EPC[%d]: ", tag->epcLen);
 
 	for (n=0; n<tag->epcLen; n++) {
@@ -693,7 +693,73 @@ int HexStringToBin(char* str,BYTE* buf,int length)
 	return x/2;
 }
 
+void ShowEnabledAntennas(DWORD antMask)
+{
+	int x=0;
+	printf("EnabledAntennas:\n");	
 
+	for(x=0;x<32;x++)
+	{
+		if((antMask) & (1<<(x)))
+		{
+			printf("ANT # %d\n",x+1);
+		}
+	}
+}
+
+static void handle_selectAntenna()
+{
+	struct NUR_CMD_LOADSETUP_PARAMS *setup;
+	int flags;	
+	int antNum, rc;	
+
+	if (!gConnected)
+		return;
+
+	flags = NUR_SETUP_ANTMASKEX;
+
+	cls();
+	
+	rc = NurApiGetModuleSetup(hApi, flags);
+	if (rc == NUR_SUCCESS) {
+		setup = &hApi->resp->loadsetup;					
+		ShowEnabledAntennas(setup->antennaMaskEx);
+	}
+	else
+	{
+		printf("GetModuleSetup error. Code = %d.\n", rc);
+		wait_key();	
+	}
+	
+	printf("Enable/Disable Antenna # (1 - 16): ");
+	if (scanf("%d", &antNum) == 1) 
+	{
+		if(antNum>0 && antNum<=16)
+		{
+			setup->flags = NUR_SETUP_ANTMASKEX;		
+			//Toggle specified bit on antennaMaskEx
+			setup->antennaMaskEx ^= 1UL << (antNum-1);			
+			ShowEnabledAntennas(setup->antennaMaskEx);
+			//Set new antennaMask to module
+			rc = NurApiSetModuleSetup(hApi, setup);
+
+			if (rc == NUR_SUCCESS) {
+				printf("OK\n");
+			}
+			else
+			{
+				printf("SetModuleSetup error. Code = %d.\n", rc);
+			}
+		}
+		else printf("Invalid input\n");		
+	}
+	else 
+	{
+		printf("Invalid input\n");
+	}
+
+	wait_key();
+}
 
 static void handle_writeEPC()
 {
@@ -906,6 +972,7 @@ static void options()
 		printf("[u]\tUpdate app (app_update.bin)\n");
 		printf("[c]\tContinuous carrier\n");
 		printf("[w]\tWrite EPC\n");
+		printf("[a]\tSet antenna\n");
 
 	} else {
 		printf("[1]\tConnect\n");
@@ -946,6 +1013,7 @@ static BOOL do_command()
 	case 'u': handle_app_update(); break;		
 	case 'c': handle_cont_carrier(); break;		
 	case 'w': handle_writeEPC(); break;		
+	case 'a': handle_selectAntenna(); break;
 
 	default: break;
 	}
