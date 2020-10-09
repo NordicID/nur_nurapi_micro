@@ -762,8 +762,7 @@ static void handle_selectAntenna()
 }
 
 static void handle_writeEPC()
-{
-	int num=-1;
+{	
 	int x=0;
 	char curepc[32];	//Current EPC as string
 	char newepc[32];	//New Epc to write as string
@@ -797,8 +796,8 @@ static void handle_writeEPC()
 
 			//printf("epcLen=%d newEpcLen=%d\n",epcBufLen,wrBufLen);
 
-			x = NurApiWriteEPCByEPC(hApi,0,FALSE,epcBuf,epcBufLen,wrBuf,wrBufLen);
-			
+			x = NurApiWriteEPCByEPC(hApi,0,FALSE,epcBuf,epcBufLen,wrBuf,wrBufLen);			
+
 			if(x==4106)
 			{
 				printf("New EPC must be in word boundaries like: aaaabbbbcccc\n");
@@ -820,6 +819,66 @@ INVALID_INPUT:
 	wait_key();	
 }
 
+static void handle_writeToUserMem()
+{
+	int x = 0;
+	char curepc[32];	//Current EPC as string
+	char newuser[32];	//Data to user mem to as string
+	BYTE epcBuf[62];
+	BYTE wrBuf[62];
+	int epcBufLen, wrBufLen;
+
+	cls();
+
+	printf("Enter Current EPC: ");
+	if (scanf("%s", &curepc) == 1)
+		if (strlen(curepc) > 1)
+		{
+			if ((strlen(curepc) % 2) != 0) {
+				printf("EPC must be pairs of two hex chars\n");
+				goto INVALID_INPUT;
+			}
+
+			printf("Enter data to USER mem: ");
+			if (scanf("%s", &newuser) == 1)
+				if (strlen(newuser) > 1)
+				{
+					if ((strlen(newuser) % 2) != 0) {
+						printf("USER must be pairs of two hex chars\n");
+						goto INVALID_INPUT;
+					}
+
+					//convert HEX string to byte array.			
+					epcBufLen = HexStringToBin(curepc, epcBuf, strlen(curepc));
+					wrBufLen = HexStringToBin(newuser, wrBuf, strlen(newuser));
+																				
+					x = NurApiWriteTagByEPC(hApi, 0, FALSE, epcBuf, epcBufLen, NUR_BANK_USER, 0,wrBufLen, wrBuf);
+
+					if (x == 4106)
+					{
+						printf("New USER mem valuemust be in word boundaries like: aaaabbbbcccc\n");
+						goto INVALID_INPUT;
+					}
+					else if (x == 4110)
+					{
+						printf("The specific memory location (USER) not exist\n");
+						goto INVALID_INPUT;
+					}
+
+					if (x == NUR_SUCCESS)
+						printf("Write success!\n");
+					else printf("Write error = %d\n", x);
+
+					wait_key();
+					return;
+				}
+		}
+
+INVALID_INPUT:
+
+	printf("Invalid input\n");
+	wait_key();
+}
 
 
 /* Calculate a reflected power */
@@ -972,6 +1031,7 @@ static void options()
 		printf("[u]\tUpdate app (app_update.bin)\n");
 		printf("[c]\tContinuous carrier\n");
 		printf("[w]\tWrite EPC\n");
+		printf("[p]\tWrite to USER mem\n");
 		printf("[a]\tSet antenna\n");
 
 	} else {
@@ -1012,7 +1072,8 @@ static BOOL do_command()
 	case 's': handle_switch_mode(); break;			
 	case 'u': handle_app_update(); break;		
 	case 'c': handle_cont_carrier(); break;		
-	case 'w': handle_writeEPC(); break;		
+	case 'w': handle_writeEPC(); break;	
+	case 'p': handle_writeToUserMem(); break;
 	case 'a': handle_selectAntenna(); break;
 
 	default: break;
