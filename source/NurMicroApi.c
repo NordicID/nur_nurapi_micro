@@ -1189,10 +1189,7 @@ int NURAPICONV NurApiWriteSingulatedTag32(struct NUR_API_HANDLE *hNurApi, DWORD 
 							  BYTE wrBank, DWORD wrAddress, int wrByteCount, BYTE *wrBuffer)
 {
 	int error;
-	int x=0;
 	int wrWordCount = 0;
-	BYTE *payloadBuffer = TxPayloadDataPtr;
-	BYTE cmd = NUR_CMD_WRITE;
 	struct NUR_CMD_WRITE_PARAMS wrParams;
 		
 	//printf("NurApiWriteSingulatedTag32 Bank=%x sAddress=%x maskBitLen=%d wrBank=%x wrAddr=%x wrByteCnt=%d\n",sBank,sAddress,sMaskBitLength,wrBank,wrAddress,wrByteCount);
