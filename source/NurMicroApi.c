@@ -15,6 +15,10 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 #include "NurApiConfig.h"
 #include "NurMicroApi.h"
 
+#if !defined(HAVE_NUR_MEMCPY) || !defined(HAVE_NUR_MEMSET)
+#include <string.h>
+#endif
+
 #ifndef NULL
 #define NULL ((void*)0)
 #endif
@@ -1154,7 +1158,7 @@ int NurApiWriteEPC(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured,
 
 	//Length padding EPC codes to next 16 bit word boundary
 	paddedEpcBufferLen = ((newEpcBufferLen * 8) + 15)/16*2;
-	memset(wrBuffer, 0, paddedEpcBufferLen);
+	nurMemset(wrBuffer, 0, paddedEpcBufferLen);
 
 	// Set EPC length in words
 	pc = (WORD)((paddedEpcBufferLen/2) << 11);
@@ -1163,7 +1167,7 @@ int NurApiWriteEPC(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured,
 	PacketWordPos(wrBuffer, NUR_HTONS(pc), 0);
 	
 	// Add EPC
-	memcpy(&wrBuffer[2], newEpcBuffer, newEpcBufferLen);
+	nurMemcpy(&wrBuffer[2], newEpcBuffer, newEpcBufferLen);
 		
 	if ((newEpcBufferLen % 2) != 0) {
 		return NUR_ERROR_NOT_WORD_BOUNDARY;
@@ -1189,15 +1193,12 @@ int NURAPICONV NurApiWriteSingulatedTag32(struct NUR_API_HANDLE *hNurApi, DWORD 
 							  BYTE wrBank, DWORD wrAddress, int wrByteCount, BYTE *wrBuffer)
 {
 	int error;
-	int x=0;
 	int wrWordCount = 0;
-	BYTE *payloadBuffer = TxPayloadDataPtr;
-	BYTE cmd = NUR_CMD_WRITE;
 	struct NUR_CMD_WRITE_PARAMS wrParams;
 		
 	//printf("NurApiWriteSingulatedTag32 Bank=%x sAddress=%x maskBitLen=%d wrBank=%x wrAddr=%x wrByteCnt=%d\n",sBank,sAddress,sMaskBitLength,wrBank,wrAddress,wrByteCount);
 
-	memset(&wrParams, 0, sizeof(wrParams));
+	nurMemset(&wrParams, 0, sizeof(wrParams));
 
 	if (wrByteCount > 244 || sMaskBitLength > NUR_MAX_SELMASKBITS) {
 		return NUR_ERROR_INVALID_PARAMETER;
@@ -1215,7 +1216,7 @@ int NURAPICONV NurApiWriteSingulatedTag32(struct NUR_API_HANDLE *hNurApi, DWORD 
 		wrParams.sb.address32 = sAddress;
 		wrParams.sb.bank = sBank;
 		wrParams.sb.maskbitlen = (WORD)sMaskBitLength;
-		memcpy(wrParams.sb.maskdata, sMask, byteLen);				
+		nurMemcpy(wrParams.sb.maskdata, sMask, byteLen);
 	}
 
 
@@ -1224,7 +1225,7 @@ int NURAPICONV NurApiWriteSingulatedTag32(struct NUR_API_HANDLE *hNurApi, DWORD 
 	wrParams.wb.address32 = wrAddress;
 	wrParams.wb.bank = wrBank;
 	wrParams.wb.wordcount = (BYTE)wrWordCount;
-	memcpy(wrParams.wb.data, wrBuffer, wrWordCount*2);
+	nurMemcpy(wrParams.wb.data, wrBuffer, wrWordCount*2);
 
 	if (secured)
 	{
