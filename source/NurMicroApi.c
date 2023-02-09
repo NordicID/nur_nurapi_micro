@@ -1029,10 +1029,6 @@ int NURAPICONV NurApiTraceTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_TRA
 	WORD payloadSize = 0;
 	BYTE maskdataLen;
 
-	if (params->maskdata == NULL) {
-		RETLOGERROR(NUR_ERROR_INVALID_PARAMETER);
-	}
-
 	// BitLengthToByteLength
 	maskdataLen = ((params->maskbitlen / 8) + ((params->maskbitlen % 8) != 0));
 

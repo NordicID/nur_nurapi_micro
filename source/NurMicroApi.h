@@ -49,8 +49,12 @@
 	typedef unsigned int BOOL;			  // 8 - 32bit (true/false) 
 	*/
 	typedef void * LPVOID;
+#ifndef TRUE
 	#define TRUE 1
+#endif
+#ifndef FALSE
 	#define FALSE 0
+#endif
 #endif
 
 #ifdef HAVE_NUR_MEMSET
