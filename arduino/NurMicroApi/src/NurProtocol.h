@@ -665,6 +665,12 @@ struct NUR_CMD_LOADSETUP_PARAMS
 
 	/** The receiver sensitivity field. 0 = Nominal, 1 = Low, 2 = High */
 	BYTE rxSensitivity;
+
+	// ADDED NUR2 7.0
+	BYTE rfProfile;
+
+	// ADDED NUR2 7.5, NanoNur 10.2
+	WORD toSleepTime;
 } NUR_PACKED;
 
 struct NUR_CMD_BEEP_PARAMS
@@ -831,6 +837,7 @@ struct NUR_CMD_READERINFO_RESP
 	BYTE numSensors;
 	BYTE numRegions;
 	BYTE numAntennas;
+	BYTE maxAntennas; // Added in 4.9
 } NUR_PACKED;
 
 #define SZ_DEVCAPS		128

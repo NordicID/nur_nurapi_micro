@@ -481,7 +481,13 @@ enum NUR_MODULESETUP_FLAGS
 	NUR_SETUP_PERANTPOWER_EX = (1L<<27), /**< antPowerEx field in struct NUR_MODULESETUP is valid */
 	NUR_SETUP_RXSENS		= (1L<<28),	/**< rxSensitivity field in struct NUR_MODULESETUP is valid */
 
-	NUR_SETUP_ALL			=	((1L << 29) - 1)	/**< All setup flags in the structure. */
+	// ADDED NUR2 7.0
+	NUR_SETUP_RFPROFILE		= (1L<<29), /**< rfProfile field in struct NUR_MODULESETUP is valid */
+
+	// ADDED NUR2 7.5, NanoNur 10.2
+	NUR_SETUP_TO_SLEEP_TIME = (1L<<30), /**< toSleepTime field in struct NUR_MODULESETUP is valid */
+
+	NUR_SETUP_ALL			=	((1U << 31) - 1)	/**< All setup flags in the structure. */
 };
 
 /** Possible inventory targets.
