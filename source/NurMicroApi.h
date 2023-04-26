@@ -566,6 +566,9 @@ enum NUR_OPFLAGS
 	NUR_OPFLAGS_EN_TUNEEVENTS   = (1L<<12),		/**< Notification NUR_NOTIFICATION_TUNEEVENT is enabled. */
 	NUR_OPFLAGS_EN_EXACT_BLF    = (1L<<13),		/**< Return exact BLF in Hz in tag meta data frequency field. Supported only in NUR L2 modules. */
 	NUR_OPFLAGS_EN_TAG_PHASE	= (1L<<14),		/**< Return tag phase angle in units of tenths of degrees in tag meta data timestamp field. Supported only in NUR2 modules. */
+	NUR_OPFLAGS_EN_NXP_BID		= (1<<15),		/**< NXP Brand ID in NXP UCODE8 tag is enabled */
+	NUR_OPFLAGS_EN_IR_MEM_OVERRUN = (1<<16),	/**< Inventory read will report EPC even if there is memory overrun error (f.ex. no user mem bank) */
+	NUR_OPFLAGS_EN_PHASE_DIFF	= (1 << 17),	/**< Return tag phase angle difference in units of tenths of degrees in tag meta data timestamp field. Supported only in NUR3 modules. */
 };
 
 /**
