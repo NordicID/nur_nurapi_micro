@@ -1,14 +1,14 @@
-/* 
+/*
 	Copyright (c) 2017 Nordic ID.
 
-	Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), 
-	to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
+	to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
 	and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
 	The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 	WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
@@ -46,7 +46,7 @@
 	typedef unsigned int DWORD;			  // 32bit unsigned
 	typedef unsigned short WORD;		  // 16bit unsigned
 	typedef unsigned char BYTE;			  // 8bit unsigned
-	typedef unsigned int BOOL;			  // 8 - 32bit (true/false) 
+	typedef unsigned int BOOL;			  // 8 - 32bit (true/false)
 	*/
 	typedef void * LPVOID;
 #ifndef TRUE
@@ -58,11 +58,11 @@
 #endif
 
 #ifdef HAVE_NUR_MEMSET
-#ifdef __cplusplus 
-extern "C" { 
+#ifdef __cplusplus
+extern "C" {
 #endif
 void *nurMemset(void *destination, int val, int num);
-#ifdef __cplusplus 
+#ifdef __cplusplus
 }
 #endif
 #else
@@ -70,11 +70,11 @@ void *nurMemset(void *destination, int val, int num);
 #endif
 
 #ifdef HAVE_NUR_MEMCPY
-#ifdef __cplusplus 
-extern "C" { 
+#ifdef __cplusplus
+extern "C" {
 #endif
 void *nurMemcpy(void *destination, const void *source, int num);
-#ifdef __cplusplus 
+#ifdef __cplusplus
 }
 #endif
 #else
@@ -82,19 +82,19 @@ void *nurMemcpy(void *destination, const void *source, int num);
 #endif
 
 #ifdef HAVE_NUR_STRNCPY
-#ifdef __cplusplus 
-extern "C" { 
+#ifdef __cplusplus
+extern "C" {
 #endif
 char *nurStrncpy(char *destination, const char *source, int num);
-#ifdef __cplusplus 
+#ifdef __cplusplus
 }
 #endif
 #else
 #define nurStrncpy	strncpy
 #endif
 
-#ifdef __cplusplus 
-extern "C" { 
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 /** @addtogroup MicroAPI
@@ -171,7 +171,7 @@ enum NUR_BAUDRATE
 	NUR_BR_1500000,		/**< 1500000 bps (use with care). */
 	NUR_BR_38400		/**< 38400 bps. */
 };
-	
+
 /**
  * Log levels
  * @sa NurApiSetLogLevel(), NurApiGetLogLevel()
@@ -818,19 +818,19 @@ struct NUR_API_HANDLE
 {
 	void *UserData;
 
-	/* 
-		Transport: 
+	/*
+		Transport:
 		Implement the read & write functionality.
 		Physical transport can be anything that Sampo or NUR module currently supports: UART, USB or Ethernet.
 	*/
 	pTransportReadDataFunction TransportReadDataFunction;
 	pTransportWriteDataFunction TransportWriteDataFunction;
-	
+
 	/*
 		Packet handler can call this funtion to pass events to an application.
 	*/
 	pUnsolEventHandler UnsolEventHandler;
-	
+
 	BYTE *TxBuffer;
 	DWORD TxBufferLen;
 
@@ -911,7 +911,7 @@ NUR_API int NURAPICONV NurApiGetCustomHoptableEx(struct NUR_API_HANDLE *hNurApi)
 
 
 /** @fn int NurApiSetExtCarrier(HANDLE hNurApi, BOOL on)
- * 
+ *
  * Causes the module to leave carrier on after a command and not to jump to new frequency.
  * The carrier on time is limited by the maximum channel time.
  *
@@ -924,26 +924,26 @@ NUR_API int NURAPICONV NurApiGetCustomHoptableEx(struct NUR_API_HANDLE *hNurApi)
 NUR_API int NURAPICONV NurApiSetExtCarrier(struct NUR_API_HANDLE *hNurApi, BOOL on);
 
 /** @fn int NurApiContCarrier(struct NUR_API_HANDLE *hNurApi, int channel)
- * 
- * Causes the module to leave carrier on specified channel. 
+ *
+ * Causes the module to leave carrier on specified channel.
  *
  * @param hNurApi	Handle to valid NurApi.
  * @param channel	Set channel index to use.
- * 
-*/ 
+ *
+*/
 NUR_API int NURAPICONV NurApiContCarrier(struct NUR_API_HANDLE *hNurApi, int channel);
 
 /** @fn int NurApiStopContCarrier(struct NUR_API_HANDLE *hNurApi)
- * 
- * Stop leaving carrier 
  *
- * @param hNurApi	Handle to valid NurApi. 
- * 
-*/ 
+ * Stop leaving carrier
+ *
+ * @param hNurApi	Handle to valid NurApi.
+ *
+*/
 NUR_API int NURAPICONV NurApiStopContCarrier(struct NUR_API_HANDLE *hNurApi);
 
 /** @fn int NurApiSetConstantChannelIndex(HANDLE hNurApi, BYTE channelIdx)
- * 
+ *
  * Set channel index to use in current hop table.
  * This prevents NUR from hopping in different channel.
  * Use with care: RF frequency is locked as long as this is set.
@@ -1005,7 +1005,7 @@ int NURAPICONV NurApiProgramBootloader(struct NUR_API_HANDLE *hNurApi, pProgramP
 extern WORD NurCRC16(WORD crc, BYTE *buf, DWORD len);
 #endif
 
-#ifdef __cplusplus 
+#ifdef __cplusplus
 }
 #endif
 
@@ -1014,8 +1014,8 @@ extern WORD NurCRC16(WORD crc, BYTE *buf, DWORD len);
 */
 #ifdef CONFIG_MEMBER_ACCESS
 
-#ifdef __cplusplus 
-extern "C" { 
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 WORD GET_U16(void *wSrc);
@@ -1025,7 +1025,7 @@ void SET_U16(void *wDst, void *wSrc);
 void SET_U32(void *dwDst, void *dwSrc);
 void SET_U64(void *qwDst, void *qwSrc);
 
-#ifdef __cplusplus 
+#ifdef __cplusplus
 extern }
 #endif
 
@@ -1046,7 +1046,7 @@ extern }
 #define SET_DWORD(_dwDst, _dwSrc)	_dwDst = _dwSrc
 #define SET_QWORD(_qwDst, _qwSrc)	_qwDst = _qwSrc
 
-#endif	
+#endif
 
 #define NUR_HTONS(n) (((((unsigned short)(n) & 0xFF)) << 8) | (((unsigned short)(n) & 0xFF00) >> 8))
 
