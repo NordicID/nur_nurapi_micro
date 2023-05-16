@@ -282,7 +282,7 @@ struct NUR_HEADER
 
 struct NUR_IDBUFFER_ENTRY
 {
-	char rssi;
+	signed char rssi;
 	char scaledRssi;
 	WORD timestamp;
 	DWORD freq;
@@ -771,7 +771,7 @@ struct NUR_CMD_GETMODE_RESP
 struct NUR_CMD_SCANSINGLE_RESP
 {
 	BYTE antennaID;
-	char rssi;
+	signed char rssi;
 	char scaledRssi;
 	BYTE epcdata[NUR_MAX_EPC_LENGTH];
 	BYTE epcLen; // NOTE: Does not come in response from module, calculated from packet size
@@ -805,7 +805,7 @@ struct NUR_CMD_MZ4_RESP
 
 struct NUR_CMD_TRACETAG_RESP
 {
-	char rssi;
+	signed char rssi;
 	char scaledRssi;
 	BYTE antennaID;
 	BYTE epcdata[NUR_MAX_EPC_LENGTH];	
