@@ -26,35 +26,12 @@
 
 #define _UNUSED(_uuVarName)	(void)_uuVarName
 
-#ifdef _WIN32
-	#include <Windows.h>
-	typedef ULONGLONG QWORD;
-#else
-	#include <stdint.h>
-	typedef uint64_t ULONGLONG;
-	typedef uint64_t QWORD;
-	typedef uint32_t ULONG;
-	typedef uint32_t DWORD;
-	typedef uint16_t WORD;
-	typedef uint8_t BYTE;
-	typedef int32_t BOOL;
-	/*
-	// If stdint.h is not available, make these to match your platform
-	typedef unsigned long long ULONGLONG; // 64bit unsigned
-	typedef unsigned long long QWORD;	  // 64bit unsigned
-	typedef unsigned long ULONG;		  // 32bit unsigned
-	typedef unsigned int DWORD;			  // 32bit unsigned
-	typedef unsigned short WORD;		  // 16bit unsigned
-	typedef unsigned char BYTE;			  // 8bit unsigned
-	typedef unsigned int BOOL;			  // 8 - 32bit (true/false)
-	*/
-	typedef void * LPVOID;
+#include <stdint.h>
 #ifndef TRUE
 	#define TRUE 1
 #endif
 #ifndef FALSE
 	#define FALSE 0
-#endif
 #endif
 
 #ifdef HAVE_NUR_MEMSET
@@ -810,8 +787,8 @@ enum NUR_ERRORCODES
 
 struct NUR_API_HANDLE;
 
-typedef int (*pTransportReadDataFunction)(struct NUR_API_HANDLE *hNurApi, BYTE *buffer, DWORD bufferLen, DWORD *bytesRead);
-typedef int (*pTransportWriteDataFunction)(struct NUR_API_HANDLE *hNurApi, BYTE *buffer, DWORD bufferLen, DWORD *bytesWritten);
+typedef int (*pTransportReadDataFunction)(struct NUR_API_HANDLE *hNurApi, uint8_t *buffer, uint32_t bufferLen, uint32_t *bytesRead);
+typedef int (*pTransportWriteDataFunction)(struct NUR_API_HANDLE *hNurApi, uint8_t *buffer, uint32_t bufferLen, uint32_t *bytesWritten);
 
 typedef void (*pUnsolEventHandler)(struct NUR_API_HANDLE *hNurApi);
 
@@ -834,14 +811,14 @@ struct NUR_API_HANDLE
 	*/
 	pUnsolEventHandler UnsolEventHandler;
 
-	BYTE *TxBuffer;
-	DWORD TxBufferLen;
+	uint8_t *TxBuffer;
+	uint32_t TxBufferLen;
 
-	BYTE *RxBuffer;
-	DWORD RxBufferLen;
-	DWORD RxBufferUsed;
+	uint8_t *RxBuffer;
+	uint32_t RxBufferLen;
+	uint32_t RxBufferUsed;
 
-	DWORD respLen;
+	uint32_t respLen;
 	struct NUR_CMD_RESP *resp;
 };
 
@@ -849,23 +826,23 @@ struct NUR_API_HANDLE
 NUR_API const char * NURAPICONV NurApiGetErrorMessage(int error);
 #endif
 
-NUR_API int NURAPICONV NurApiSetupPacket(struct NUR_API_HANDLE *hNurApi, BYTE cmd, WORD payloadLen, WORD flags, WORD *packetLen);
-NUR_API int NURAPICONV NurApiXchPacket(struct NUR_API_HANDLE *hNurApi, BYTE cmd, WORD payloadLen, int timeout);
+NUR_API int NURAPICONV NurApiSetupPacket(struct NUR_API_HANDLE *hNurApi, uint8_t cmd, uint16_t payloadLen, uint16_t flags, uint16_t *packetLen);
+NUR_API int NURAPICONV NurApiXchPacket(struct NUR_API_HANDLE *hNurApi, uint8_t cmd, uint16_t payloadLen, int timeout);
 
 NUR_API int NURAPICONV NurApiPing(struct NUR_API_HANDLE *hNurApi);
 NUR_API int NURAPICONV NurApiWaitEvent(struct NUR_API_HANDLE *hNurApi, int timeout);
 NUR_API int NURAPICONV NurApiGetReaderInfo(struct NUR_API_HANDLE *hNurApi);
 NUR_API int NURAPICONV NurApiGetVersions(struct NUR_API_HANDLE *hApi);
-NUR_API int NURAPICONV NurApiGetRegionInfo(struct NUR_API_HANDLE *hNurApi, BYTE regionId);
-NUR_API int NURAPICONV NurApiStoreCurrentSetup(struct NUR_API_HANDLE *hNurApi, BYTE flags);
-NUR_API int NURAPICONV NurApiSetBaudrate(struct NUR_API_HANDLE *hNurApi, BYTE setting);
+NUR_API int NURAPICONV NurApiGetRegionInfo(struct NUR_API_HANDLE *hNurApi, uint8_t regionId);
+NUR_API int NURAPICONV NurApiStoreCurrentSetup(struct NUR_API_HANDLE *hNurApi, uint8_t flags);
+NUR_API int NURAPICONV NurApiSetBaudrate(struct NUR_API_HANDLE *hNurApi, uint8_t setting);
 NUR_API int NURAPICONV NurApiGetBaudrate(struct NUR_API_HANDLE *hNurApi);
-NUR_API int NURAPICONV NurApiGetFWINFO(struct NUR_API_HANDLE *hNurApi, char *buf, WORD buflen);
+NUR_API int NURAPICONV NurApiGetFWINFO(struct NUR_API_HANDLE *hNurApi, char *buf, uint16_t buflen);
 NUR_API int NURAPICONV NurApiSetModuleSetup(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_LOADSETUP_PARAMS *params);
-NUR_API int NURAPICONV NurApiGetModuleSetup(struct NUR_API_HANDLE *hNurApi, DWORD setupFlags);
+NUR_API int NURAPICONV NurApiGetModuleSetup(struct NUR_API_HANDLE *hNurApi, uint32_t setupFlags);
 NUR_API int NURAPICONV NurApiGetDeviceCaps(struct NUR_API_HANDLE *hNurApi);
 
-/** @fn int NurApiGetReflectedPowerEx(HANDLE hNurApi, DWORD freq)
+/** @fn int NurApiGetReflectedPowerEx(HANDLE hNurApi, uint32_t freq)
  *
  * Get reflected power  value (NUR_CMD_GETREFPOWEREX_RESP)
  * for given frequency or current region middle frequency.
@@ -876,7 +853,7 @@ NUR_API int NURAPICONV NurApiGetDeviceCaps(struct NUR_API_HANDLE *hNurApi);
  *
  * @return	Zero when succeeded, on error non-zero error code is returned.
  */
-NUR_API int NURAPICONV NurApiGetReflectedPowerEx(struct NUR_API_HANDLE *hNurApi, DWORD freq);
+NUR_API int NURAPICONV NurApiGetReflectedPowerEx(struct NUR_API_HANDLE *hNurApi, uint32_t freq);
 
 NUR_API int NURAPICONV NurApiInventory(struct NUR_API_HANDLE *hNurApi,
 							   struct NUR_CMD_INVENTORY_PARAMS *params);
@@ -887,8 +864,8 @@ NUR_API int NURAPICONV NurApiGetInventoryReadConfig(struct NUR_API_HANDLE *hNurA
 NUR_API int NURAPICONV NurApiSetInventoryReadConfig(struct NUR_API_HANDLE *hNurApi,
 													struct NUR_CMD_IRCONFIG_PARAMS *params);
 
-NUR_API int NURAPICONV NurApiFetchTags(struct NUR_API_HANDLE *hNurApi, BOOL includeMeta, BOOL clearModuleTags, int *tagsReceived, pFetchTagsFunction tagFunc);
-NUR_API int NURAPICONV NurApiFetchTagAt(struct NUR_API_HANDLE *hNurApi, BOOL includeMeta, int tagNum, pFetchTagsFunction tagFunc);
+NUR_API int NURAPICONV NurApiFetchTags(struct NUR_API_HANDLE *hNurApi, int32_t includeMeta, int32_t clearModuleTags, int *tagsReceived, pFetchTagsFunction tagFunc);
+NUR_API int NURAPICONV NurApiFetchTagAt(struct NUR_API_HANDLE *hNurApi, int32_t includeMeta, int tagNum, pFetchTagsFunction tagFunc);
 NUR_API int NURAPICONV NurApiClearTags(struct NUR_API_HANDLE *hNurApi);
 
 /** @fn int NurApiSetCustomHoptableEx(struct NUR_API_HANDLE *hNurApi, struct NUR_CUSTOMHOP_PARAMS_EX *params)
@@ -913,7 +890,7 @@ NUR_API int NURAPICONV NurApiSetCustomHoptableEx(struct NUR_API_HANDLE *hNurApi,
 NUR_API int NURAPICONV NurApiGetCustomHoptableEx(struct NUR_API_HANDLE *hNurApi);
 
 
-/** @fn int NurApiSetExtCarrier(HANDLE hNurApi, BOOL on)
+/** @fn int NurApiSetExtCarrier(HANDLE hNurApi, int32_t on)
  *
  * Causes the module to leave carrier on after a command and not to jump to new frequency.
  * The carrier on time is limited by the maximum channel time.
@@ -924,7 +901,7 @@ NUR_API int NURAPICONV NurApiGetCustomHoptableEx(struct NUR_API_HANDLE *hNurApi)
  *
  * @return	Zero when successful. A non-zero error code otherwise.
 */
-NUR_API int NURAPICONV NurApiSetExtCarrier(struct NUR_API_HANDLE *hNurApi, BOOL on);
+NUR_API int NURAPICONV NurApiSetExtCarrier(struct NUR_API_HANDLE *hNurApi, int32_t on);
 
 /** @fn int NurApiContCarrier(struct NUR_API_HANDLE *hNurApi, int channel)
  *
@@ -945,7 +922,7 @@ NUR_API int NURAPICONV NurApiContCarrier(struct NUR_API_HANDLE *hNurApi, int cha
 */
 NUR_API int NURAPICONV NurApiStopContCarrier(struct NUR_API_HANDLE *hNurApi);
 
-/** @fn int NurApiSetConstantChannelIndex(HANDLE hNurApi, BYTE channelIdx)
+/** @fn int NurApiSetConstantChannelIndex(HANDLE hNurApi, uint8_t channelIdx)
  *
  * Set channel index to use in current hop table.
  * This prevents NUR from hopping in different channel.
@@ -958,29 +935,29 @@ NUR_API int NURAPICONV NurApiStopContCarrier(struct NUR_API_HANDLE *hNurApi);
  *
  * @return	Zero when successful. A non-zero error code otherwise.
 */
-NUR_API int NURAPICONV NurApiSetConstantChannelIndex(struct NUR_API_HANDLE *hNurApi, BYTE channelIdx);
+NUR_API int NURAPICONV NurApiSetConstantChannelIndex(struct NUR_API_HANDLE *hNurApi, uint8_t channelIdx);
 
 int NURAPICONV NurApiTraceTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_TRACETAG_PARAMS *params);
 
 #ifdef CONFIG_GENERIC_READ
-NUR_API int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_READ_PARAMS *params,  BYTE *rdBuffer);
+NUR_API int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_READ_PARAMS *params,  uint8_t *rdBuffer);
 #endif
 
 #ifdef CONFIG_GENERIC_WRITE
-NUR_API int NURAPICONV NurApiWriteEPC(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured,BYTE sBank, DWORD sAddress, int sMaskBitLength, BYTE *sMask, BYTE *newEpcBuffer, DWORD newEpcBufferLen);
-NUR_API int NURAPICONV NurApiWriteEPCByEPC(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured, BYTE *epcBuffer, DWORD epcBufferLen, BYTE *newEpcBuffer, DWORD newEpcBufferLen);
-NUR_API int NURAPICONV NurApiWriteTagByEPC(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured, BYTE *epcBuffer, DWORD epcBufferLen, BYTE wrBank, DWORD wrAddress, int wrByteCount, BYTE *wrBuffer);
-NUR_API int NURAPICONV NurApiWriteSingulatedTag32(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured, BYTE sBank, DWORD sAddress, int sMaskBitLength, BYTE *sMask, BYTE wrBank, DWORD wrAddress, int wrByteCount, BYTE *wrBuffer);
+NUR_API int NURAPICONV NurApiWriteEPC(struct NUR_API_HANDLE *hNurApi, uint32_t passwd, int32_t secured,uint8_t sBank, uint32_t sAddress, int sMaskBitLength, uint8_t *sMask, uint8_t *newEpcBuffer, uint32_t newEpcBufferLen);
+NUR_API int NURAPICONV NurApiWriteEPCByEPC(struct NUR_API_HANDLE *hNurApi, uint32_t passwd, int32_t secured, uint8_t *epcBuffer, uint32_t epcBufferLen, uint8_t *newEpcBuffer, uint32_t newEpcBufferLen);
+NUR_API int NURAPICONV NurApiWriteTagByEPC(struct NUR_API_HANDLE *hNurApi, uint32_t passwd, int32_t secured, uint8_t *epcBuffer, uint32_t epcBufferLen, uint8_t wrBank, uint32_t wrAddress, int wrByteCount, uint8_t *wrBuffer);
+NUR_API int NURAPICONV NurApiWriteSingulatedTag32(struct NUR_API_HANDLE *hNurApi, uint32_t passwd, int32_t secured, uint8_t sBank, uint32_t sAddress, int sMaskBitLength, uint8_t *sMask, uint8_t wrBank, uint32_t wrAddress, int wrByteCount, uint8_t *wrBuffer);
 NUR_API int NURAPICONV NurApiWriteTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_WRITE_PARAMS *params);
 #endif
 
-int NURAPICONV NurApiScanSingle(struct NUR_API_HANDLE *hNurApi, WORD timeout);
+int NURAPICONV NurApiScanSingle(struct NUR_API_HANDLE *hNurApi, uint16_t timeout);
 
-int NURAPICONV NurApiTuneAntenna(struct NUR_API_HANDLE *hNurApi, int antenna, BOOL wideTune, BOOL bSaveResults, int *dBmResults);
+int NURAPICONV NurApiTuneAntenna(struct NUR_API_HANDLE *hNurApi, int antenna, int32_t wideTune, int32_t bSaveResults, int *dBmResults);
 
 int NURAPICONV NurApiSetGPIOConfig(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_CONFIGGPIO_PARAMS *gpioParams);
 int NURAPICONV NurApiGetGPIOConfig(struct NUR_API_HANDLE *hNurApi);
-int NURAPICONV NurApiSetGPIOStatus(struct NUR_API_HANDLE *hNurApi, int gpio, BOOL state);
+int NURAPICONV NurApiSetGPIOStatus(struct NUR_API_HANDLE *hNurApi, int gpio, int32_t state);
 int NURAPICONV NurApiGetGPIOStatus(struct NUR_API_HANDLE *hNurApi, int gpio);
 
 int NURAPICONV NurApiGetMode(struct NUR_API_HANDLE *hNurApi, char *mode);
@@ -1000,12 +977,12 @@ struct NUR_PRGPROGRESS_DATA
 /** Called while programming. Return 0 to continue, non-zero to stop programming */
 typedef int (*pProgramProgressFunction)(struct NUR_API_HANDLE *hNurApi, struct NUR_PRGPROGRESS_DATA *prg);
 
-int NURAPICONV NurApiProgramBuffer(struct NUR_API_HANDLE *hNurApi, pProgramProgressFunction prgFn, WORD startPage, BYTE validateCmd, BYTE *buffer, DWORD bufferLen);
-int NURAPICONV NurApiProgramApp(struct NUR_API_HANDLE *hNurApi, pProgramProgressFunction prgFn, BYTE *buffer, DWORD bufferLen);
-int NURAPICONV NurApiProgramBootloader(struct NUR_API_HANDLE *hNurApi, pProgramProgressFunction prgFn, BYTE *buffer, DWORD bufferLen);
+int NURAPICONV NurApiProgramBuffer(struct NUR_API_HANDLE *hNurApi, pProgramProgressFunction prgFn, uint16_t startPage, uint8_t validateCmd, uint8_t *buffer, uint32_t bufferLen);
+int NURAPICONV NurApiProgramApp(struct NUR_API_HANDLE *hNurApi, pProgramProgressFunction prgFn, uint8_t *buffer, uint32_t bufferLen);
+int NURAPICONV NurApiProgramBootloader(struct NUR_API_HANDLE *hNurApi, pProgramProgressFunction prgFn, uint8_t *buffer, uint32_t bufferLen);
 
 #ifndef IMPLEMENT_CRC16
-extern WORD NurCRC16(WORD crc, BYTE *buf, DWORD len);
+extern uint16_t NurCRC16(uint16_t crc, uint8_t *buf, uint32_t len);
 #endif
 
 #ifdef __cplusplus
@@ -1021,9 +998,9 @@ extern WORD NurCRC16(WORD crc, BYTE *buf, DWORD len);
 extern "C" {
 #endif
 
-WORD GET_U16(void *wSrc);
-DWORD GET_U32(void *dwSrc);
-QWORD GET_U64(void *qwSrc);
+uint16_t GET_U16(void *wSrc);
+uint32_t GET_U32(void *dwSrc);
+uint64_t GET_U64(void *qwSrc);
 void SET_U16(void *wDst, void *wSrc);
 void SET_U32(void *dwDst, void *dwSrc);
 void SET_U64(void *qwDst, void *qwSrc);

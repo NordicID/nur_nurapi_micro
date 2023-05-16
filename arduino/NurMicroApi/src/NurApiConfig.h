@@ -33,7 +33,7 @@
 #define HAVE_NUR_MEMCPY
 
 // Comment out to implement own CRC-16
-// Prototype is in NurMicroApi.h: extern WORD NurCRC16(WORD crc, BYTE *buf, DWORD len);
+// Prototype is in NurMicroApi.h: extern uint16_t NurCRC16(uint16_t crc, uint8_t *buf, uint32_t len);
 #define IMPLEMENT_CRC16
 
 /*

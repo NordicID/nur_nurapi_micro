@@ -20,14 +20,14 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 #include <math.h>
 #include "NurMicroApi.h"
 
-BOOL open_serial(struct NUR_API_HANDLE *hApi, int number, DWORD baudrate);
+int32_t open_serial(struct NUR_API_HANDLE *hApi, int number, uint32_t baudrate);
 void close_serial();
 
-static BOOL gConnected = FALSE;
+static int32_t gConnected = FALSE;
 
 // The API's communication buffers.
-static BYTE gRxBuffer[NUR_MAX_RCV_SZ];
-static BYTE gTxBuffer[NUR_MAX_SEND_SZ];
+static uint8_t gRxBuffer[NUR_MAX_RCV_SZ];
+static uint8_t gTxBuffer[NUR_MAX_SEND_SZ];
 
 /*
 In this approach we are using a static API structure.
@@ -39,14 +39,14 @@ static struct NUR_API_HANDLE gApi =
 	NULL,	// TransportWriteDataFunction
 	NULL,	// UnsolEventHandler;
 
-	NULL,	// BYTE *TxBuffer;
-	0,		// DWORD TxBufferLen;
+	NULL,	// uint8_t *TxBuffer;
+	0,		// uint32_t TxBufferLen;
 
-	NULL,	//BYTE *RxBuffer;
-	0,		// DWORD RxBufferLen;
-	0,		// DWORD RxBufferUsed;
+	NULL,	// uint8_t *RxBuffer;
+	0,		// uint32_t RxBufferLen;
+	0,		// uint32_t RxBufferUsed;
 
-	0,		// DWORD respLen;
+	0,		// uint32_t respLen;
 	NULL	// struct NUR_CMD_RESP *resp;
 };
 
@@ -128,12 +128,12 @@ static int ProgramProgressFunction(struct NUR_API_HANDLE *hNurApi, struct NUR_PR
 	return 0;
 }
 
-static int NurApiProgramFile(struct NUR_API_HANDLE *hNurApi, WORD startPage, BYTE validateCmd, const char *fname)
+static int NurApiProgramFile(struct NUR_API_HANDLE *hNurApi, uint16_t startPage, uint8_t validateCmd, const char *fname)
 {
 	int error = 0;
 	FILE *fp;
-	BYTE *fileBuffer = NULL;
-	DWORD fileLen = 0;
+	uint8_t *fileBuffer = NULL;
+	uint32_t fileLen = 0;
 
 	printf("NurApiProgramFile(%s)\n", fname);
 
@@ -147,14 +147,14 @@ static int NurApiProgramFile(struct NUR_API_HANDLE *hNurApi, WORD startPage, BYT
 	fileLen = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
 
-	fileBuffer = (BYTE *) malloc(fileLen);
+	fileBuffer = (uint8_t *) malloc(fileLen);
 	if (!fileBuffer) {
 		fclose(fp);
 		printf("NurApiProgramFile(%s), FATAL: file buffer ALLOCATION failed!\n", fname);
 		return NUR_ERROR_GENERAL;
 	}
 
-	if (fread(fileBuffer, sizeof(BYTE), fileLen, fp) != fileLen) {
+	if (fread(fileBuffer, sizeof(uint8_t), fileLen, fp) != fileLen) {
 		fclose(fp);
 		printf("NurApiProgramFile(%s), FATAL: file buffer READ failed!\n", fname);
 		return NUR_ERROR_GENERAL;
@@ -425,9 +425,9 @@ int FetchTagsFunction(struct NUR_API_HANDLE *hNurApi, struct NUR_IDBUFFER_ENTRY 
 // epcMask:				EPC filter, beginning of the EPC code
 // epcMaskByteLen:		Length of the supplied epcMask in bytes
 // Example:
-// BYTE epcMask[] = { 0xAB, 0xCD }; // Select tags EPC starting with "ABCD"
+// uint8_t epcMask[] = { 0xAB, 0xCD }; // Select tags EPC starting with "ABCD"
 // handle_inventoryex_epcmask(epcMask, sizeof(epcMask));
-static void handle_inventoryex_epcmask(BYTE *epcMask, int epcMaskByteLen)
+static void handle_inventoryex_epcmask(uint8_t *epcMask, int epcMaskByteLen)
 {
 	int rc, n;
 
@@ -675,7 +675,7 @@ unsigned char GetBinVal(char ch)
 		return value;
 }
 
-int HexStringToBin(char* str,BYTE* buf,int length)
+int HexStringToBin(char* str,uint8_t* buf,int length)
 {
 	int strPtr=0;
 	int x=0;
@@ -693,7 +693,7 @@ int HexStringToBin(char* str,BYTE* buf,int length)
 	return x/2;
 }
 
-void ShowEnabledAntennas(DWORD antMask)
+void ShowEnabledAntennas(uint32_t antMask)
 {
 	int x=0;
 	printf("EnabledAntennas:\n");
@@ -766,8 +766,8 @@ static void handle_writeEPC()
 	int x=0;
 	char curepc[32];	//Current EPC as string
 	char newepc[32];	//New Epc to write as string
-	BYTE epcBuf[62];
-	BYTE wrBuf[62];
+	uint8_t epcBuf[62];
+	uint8_t wrBuf[62];
 	int epcBufLen,wrBufLen;
 
 	cls();
@@ -824,8 +824,8 @@ static void handle_writeToUserMem()
 	int x = 0;
 	char curepc[32];	//Current EPC as string
 	char newuser[32];	//Data to user mem to as string
-	BYTE epcBuf[62];
-	BYTE wrBuf[62];
+	uint8_t epcBuf[62];
+	uint8_t wrBuf[62];
 	int epcBufLen, wrBufLen;
 
 	cls();
@@ -938,8 +938,8 @@ static void handle_enable_disable_events()
 static void handle_get_reflected_power_ex()
 {
 	struct NUR_CMD_GETREFPOWEREX_RESP *refpowerex;
-	DWORD middle_frequency;
-	DWORD measure_frequency;
+	uint32_t middle_frequency;
+	uint32_t measure_frequency;
 	int reflected_power;
 
 	cls();
@@ -1042,7 +1042,7 @@ static void options()
 	printf("\nSelection: ");
 }
 
-static BOOL do_command()
+static int32_t do_command()
 {
 	int key;
 	options();
@@ -1061,7 +1061,7 @@ static BOOL do_command()
 	case '5': handle_setup_get(); break;
 	case '6': handle_inventory(); break;
 	case '7': {
-		BYTE epcMask[] = { 0x30 }; // Select SGTIN-96 tags (EPC starting with "30")
+		uint8_t epcMask[] = { 0x30 }; // Select SGTIN-96 tags (EPC starting with "30")
 		handle_inventoryex_epcmask(epcMask, sizeof(epcMask));
 		break;
 			  }

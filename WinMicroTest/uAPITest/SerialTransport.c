@@ -26,11 +26,11 @@
 // This is anything that the serial transport requires to have; here it is the HANDLE returned by the Win32 API.
 static HANDLE gSerial = INVALID_HANDLE_VALUE;
 
-static int serial_read(struct NUR_API_HANDLE *hNurApi, BYTE *buffer, DWORD bufferLen, DWORD *bytesRead);
-static int serial_write(struct NUR_API_HANDLE *hNurApi, BYTE *buffer, DWORD bufferLen, DWORD *bytesWritten);
+static int serial_read(struct NUR_API_HANDLE *hNurApi, uint8_t *buffer, uint32_t bufferLen, uint32_t *bytesRead);
+static int serial_write(struct NUR_API_HANDLE *hNurApi, uint8_t *buffer, uint32_t bufferLen, uint32_t *bytesWritten);
 
 // As we are using the handle here locally, only return the ok/fail status.
-BOOL open_serial(struct NUR_API_HANDLE *hApi, int number, DWORD baudrate)
+int32_t open_serial(struct NUR_API_HANDLE *hApi, int number, uint32_t baudrate)
 {
 	char thePort[20];
 	COMMTIMEOUTS to;
@@ -88,10 +88,10 @@ void close_serial()
 	}
 }
 
-static int serial_read(struct NUR_API_HANDLE *hNurApi, BYTE *buffer, DWORD bufferLen, DWORD *bytesRead)
+static int serial_read(struct NUR_API_HANDLE *hNurApi, uint8_t *buffer, uint32_t bufferLen, uint32_t *bytesRead)
 {
-	DWORD dwRead = 0;
-	DWORD dwError;
+	uint32_t dwRead = 0;
+	uint32_t dwError;
 
 	if (gSerial == INVALID_HANDLE_VALUE)
 		return NUR_ERROR_TR_NOT_CONNECTED;
@@ -121,12 +121,12 @@ static int serial_read(struct NUR_API_HANDLE *hNurApi, BYTE *buffer, DWORD buffe
 	return (gSerial != INVALID_HANDLE_VALUE) ? NUR_SUCCESS : NUR_ERROR_TR_NOT_CONNECTED;
 }
 
-static int serial_write(struct NUR_API_HANDLE *hNurApi, BYTE *buffer, DWORD bufferLen, DWORD *bytesWritten)
+static int serial_write(struct NUR_API_HANDLE *hNurApi, uint8_t *buffer, uint32_t bufferLen, uint32_t *bytesWritten)
 {
 	int x;
-	DWORD dwWritten = 0;
-	DWORD totalWritten = 0;
-	DWORD dwError;
+	uint32_t dwWritten = 0;
+	uint32_t totalWritten = 0;
+	uint32_t dwError;
 
 	if (gSerial == INVALID_HANDLE_VALUE)
 		return NUR_ERROR_TR_NOT_CONNECTED;

@@ -224,7 +224,7 @@ enum {
 
 // Internal FLASH Page Size: 256 bytes
 #define NUR_FLASH_PAGE_SIZE		(256)
-// Internal FLASH Page Size: 256/4 DWORDs
+// Internal FLASH Page Size: 256/4 uint32_ts
 #define NUR_FLASH_PAGE_SIZE_DW	(256/4)
 
 #define ISEL_INVERT (1<<0)
@@ -270,10 +270,10 @@ enum {
 
 struct NUR_HEADER
 {
-	BYTE start;
-	WORD payloadlen;
-	WORD flags;
-	BYTE checksum;
+	uint8_t start;
+	uint16_t payloadlen;
+	uint16_t flags;
+	uint8_t checksum;
 } NUR_PACKED;
 
 #define PACKET_START    0xA5
@@ -282,17 +282,17 @@ struct NUR_HEADER
 
 struct NUR_IDBUFFER_ENTRY
 {
-	signed char rssi;
-	char scaledRssi;
-	WORD timestamp;
-	DWORD freq;
-	BYTE dataLen;
-	WORD pc;
-	BYTE channel;
-	BYTE antennaId;
-	BYTE epcLen;
+	int8_t rssi;
+	uint8_t scaledRssi;
+	uint16_t timestamp;
+	uint32_t freq;
+	uint8_t dataLen;
+	uint16_t pc;
+	uint8_t channel;
+	uint8_t antennaId;
+	uint8_t epcLen;
 	/* EPC + associated data */
-	BYTE *epcData;
+	uint8_t *epcData;
 } NUR_PACKED;
 
 /////////////////////////////////////////////////////////////////////////////
@@ -300,158 +300,158 @@ struct NUR_IDBUFFER_ENTRY
 
 struct NUR_CMD_BAUDRATE_PARAMS
 {
-	BYTE setting;
+	uint8_t setting;
 } NUR_PACKED;
 
 struct NUR_CMD_PAGEREAD_PARAMS
 {
-	WORD pagetoread;
-	BYTE cPermission[CRYPTO_PERMISSION_LENGTH];
+	uint16_t pagetoread;
+	uint8_t cPermission[CRYPTO_PERMISSION_LENGTH];
 } NUR_PACKED;
 
 struct NUR_CMD_PAGEWRITE_PARAMS
 {
-	WORD pagetowrite;
-	DWORD crc;
-	BYTE data[NUR_FLASH_PAGE_SIZE];
+	uint16_t pagetowrite;
+	uint32_t crc;
+	uint8_t data[NUR_FLASH_PAGE_SIZE];
 } NUR_PACKED;
 
 struct NUR_CMD_SCRATCHDATA_PARAMS
 {
-	BYTE read;
-	BYTE page;
-	BYTE offset;
-	WORD dataLen;
-	DWORD dwReserved;
-	BYTE data[MIN_SCRATCHBYTES];
+	uint8_t read;
+	uint8_t page;
+	uint8_t offset;
+	uint16_t dataLen;
+	uint32_t dwReserved;
+	uint8_t data[MIN_SCRATCHBYTES];
 } NUR_PACKED;
 
 struct NUR_CMD_APPVALIDATE_PARAMS
 {
-	DWORD appsize;
-	DWORD appcrc;
+	uint32_t appsize;
+	uint32_t appcrc;
 } NUR_PACKED;
 
 struct NUR_CMD_SCANSINGLE_PARAMS
 {
-	WORD timeout;
+	uint16_t timeout;
 } NUR_PACKED;
 
 struct NUR_CMD_INVENTORY_PARAMS
 {
-	BYTE Q;
-	BYTE session;
-	BYTE rounds;
+	uint8_t Q;
+	uint8_t session;
+	uint8_t rounds;
 } NUR_PACKED;
 
 struct NUR_CMD_INVENTORYEX_FILTER
 {
-	BYTE truncate;
-	BYTE target;
-	BYTE action;
-	BYTE bank;
-	DWORD address;
-	BYTE maskbitlen;
-	BYTE maskdata[NUR_MAX_SELMASK];
+	uint8_t truncate;
+	uint8_t target;
+	uint8_t action;
+	uint8_t bank;
+	uint32_t address;
+	uint8_t maskbitlen;
+	uint8_t maskdata[NUR_MAX_SELMASK];
 } NUR_PACKED;
 
 struct NUR_CMD_INVENTORYEX_PARAMS
 {
-	BYTE flags;
-	BYTE Q;
-	BYTE session;
-	BYTE rounds;
-	WORD transitTime;
-	BYTE inventoryTarget;
-	BYTE inventorySelState;
-	BYTE filterCount;
+	uint8_t flags;
+	uint8_t Q;
+	uint8_t session;
+	uint8_t rounds;
+	uint16_t transitTime;
+	uint8_t inventoryTarget;
+	uint8_t inventorySelState;
+	uint8_t filterCount;
 	struct NUR_CMD_INVENTORYEX_FILTER filters[NUR_MAX_FILTERS];
 } NUR_PACKED;
 
 struct NUR_CMD_IRCONFIG_PARAMS
 {
-  BYTE active;
-  BYTE type;
-  BYTE bank;
-  DWORD wAddress;
-  BYTE wLength;
+  uint8_t active;
+  uint8_t type;
+  uint8_t bank;
+  uint32_t wAddress;
+  uint8_t wLength;
 } NUR_PACKED;
 
 struct NUR_SINGULATIONBLOCK
 {
-	BYTE bytestofollow;
-	BYTE bank;
+	uint8_t bytestofollow;
+	uint8_t bank;
 	union {
-		DWORD address32;
-		ULONGLONG address64;
+		uint32_t address32;
+		uint64_t address64;
 	};
-	WORD maskbitlen;
-	BYTE maskdata[NUR_MAX_SELMASK];
+	uint16_t maskbitlen;
+	uint8_t maskdata[NUR_MAX_SELMASK];
 } NUR_PACKED;
 
 struct NUR_READBLOCK
 {
-	BYTE bytestofollow;
-	BYTE bank;
+	uint8_t bytestofollow;
+	uint8_t bank;
 	union {
-		DWORD address32;
-		ULONGLONG address64;
+		uint32_t address32;
+		uint64_t address64;
 	};
-	BYTE wordcount;
+	uint8_t wordcount;
 } NUR_PACKED;
 
 struct NUR_WRITEBLOCK
 {
-	BYTE bytestofollow;
-	BYTE bank;
+	uint8_t bytestofollow;
+	uint8_t bank;
 	union {
-		DWORD address32;
-		ULONGLONG address64;
+		uint32_t address32;
+		uint64_t address64;
 	};
-	BYTE wordcount;
-	BYTE data[255];
+	uint8_t wordcount;
+	uint8_t data[255];
 } NUR_PACKED;
 
 struct NUR_WRITEBLOCK_EX
 {
-	BYTE bytestofollow;
-	BYTE bank;
+	uint8_t bytestofollow;
+	uint8_t bank;
 	union {
-		DWORD address32;
-		ULONGLONG address64;
+		uint32_t address32;
+		uint64_t address64;
 	};
-	BYTE wordcount;
-	BYTE blSize;
-	BYTE data[255];
+	uint8_t wordcount;
+	uint8_t blSize;
+	uint8_t data[255];
 } NUR_PACKED;
 
 struct NUR_LOCKBLOCK
 {
-	BYTE bytestofollow;
-	WORD mask;
-	WORD action;
+	uint8_t bytestofollow;
+	uint16_t mask;
+	uint16_t action;
 } NUR_PACKED;
 
 struct NUR_PERMALOCKBLOCK
 {
-	BYTE lock;
-	BYTE bank;
-	DWORD addr;
-	BYTE range;
-	WORD wMask[255];
+	uint8_t lock;
+	uint8_t bank;
+	uint32_t addr;
+	uint8_t range;
+	uint16_t wMask[255];
 } NUR_PACKED;
 
 struct NUR_SINGULATED_CMD_PARAMS
 {
-	BYTE flags;
-	DWORD passwd;
+	uint8_t flags;
+	uint32_t passwd;
 	struct NUR_SINGULATIONBLOCK sb;
 } NUR_PACKED;
 
 struct NUR_CMD_READ_PARAMS
 {
-	BYTE flags;
-	DWORD passwd;
+	uint8_t flags;
+	uint32_t passwd;
 
 	struct NUR_SINGULATIONBLOCK sb;
 	struct NUR_READBLOCK rb;
@@ -459,8 +459,8 @@ struct NUR_CMD_READ_PARAMS
 
 struct NUR_CMD_WRITE_PARAMS
 {
-	BYTE flags;
-	DWORD passwd;
+	uint8_t flags;
+	uint32_t passwd;
 
 	struct NUR_SINGULATIONBLOCK sb;
 	struct NUR_WRITEBLOCK wb;
@@ -468,8 +468,8 @@ struct NUR_CMD_WRITE_PARAMS
 
 struct NUR_CMD_BLWRITEEX_PARAMS
 {
-	BYTE flags;
-	DWORD passwd;
+	uint8_t flags;
+	uint32_t passwd;
 
 	struct NUR_SINGULATIONBLOCK sb;
 	struct NUR_WRITEBLOCK_EX wbe;
@@ -477,8 +477,8 @@ struct NUR_CMD_BLWRITEEX_PARAMS
 
 struct NUR_CMD_BLKERASE_PARAMS
 {
-	BYTE flags;
-	DWORD passwd;
+	uint8_t flags;
+	uint32_t passwd;
 
 	struct NUR_SINGULATIONBLOCK sb;
 	struct NUR_READBLOCK erb;
@@ -486,8 +486,8 @@ struct NUR_CMD_BLKERASE_PARAMS
 
 struct NUR_CMD_LOCK_PARAMS
 {
-	BYTE flags;
-	DWORD passwd;
+	uint8_t flags;
+	uint32_t passwd;
 
 	struct NUR_SINGULATIONBLOCK sb;
 	struct NUR_LOCKBLOCK lb;
@@ -495,8 +495,8 @@ struct NUR_CMD_LOCK_PARAMS
 
 struct NUR_CMD_PERMALOCK_PARAM
 {
-	BYTE flags;
-	DWORD passwd;
+	uint8_t flags;
+	uint32_t passwd;
 
 	struct NUR_SINGULATIONBLOCK sb;
 	struct NUR_PERMALOCKBLOCK plb;
@@ -504,73 +504,73 @@ struct NUR_CMD_PERMALOCK_PARAM
 
 struct NUR_CMD_KILL_PARAMS
 {
-	BYTE flags;
-	DWORD passwd;
+	uint8_t flags;
+	uint32_t passwd;
 
 	struct NUR_SINGULATIONBLOCK sb;
 } NUR_PACKED;
 
 struct NUR_NXP_PARAMS
 {
-	BYTE flags;
-	DWORD passwd;
-	BOOL set;
+	uint8_t flags;
+	uint32_t passwd;
+	int32_t set;
 
 	struct NUR_SINGULATIONBLOCK sb;
 } NUR_PACKED;
 
 struct NUR_MONZAQTPARAMS
 {
-	BYTE flags;
-	DWORD passwd;
-	BOOL write;
+	uint8_t flags;
+	uint32_t passwd;
+	int32_t write;
 	// N/ for the time being.
-	//BOOL persist;
-	BOOL reduce;
-	BOOL pubmem;
+	//int32_t persist;
+	int32_t reduce;
+	int32_t pubmem;
 	struct NUR_SINGULATIONBLOCK sb;
 } NUR_PACKED;
 
 struct NUR_CMD_TRACETAG_PARAMS
 {
-	BYTE flags;
-	BYTE bank;
+	uint8_t flags;
+	uint8_t bank;
 	union {
-		DWORD address32;
-		ULONGLONG address64;
+		uint32_t address32;
+		uint64_t address64;
 	};
-	BYTE maskbitlen;
-	BYTE maskdata[NUR_MAX_SELMASK];
+	uint8_t maskbitlen;
+	uint8_t maskdata[NUR_MAX_SELMASK];
 } NUR_PACKED;
 
 struct NUR_CMD_SENSORS_PARAMS
 {
-	BYTE flags;
-	BYTE config[NUR_MAX_SENSORS * NUR_SZ_SENSOR_CONF];
+	uint8_t flags;
+	uint8_t config[NUR_MAX_SENSORS * NUR_SZ_SENSOR_CONF];
 } NUR_PACKED;
 
 struct NUR_GPIO_SETUP
 {
-	BYTE enabled;
-	BYTE type;
-	BYTE edge;
-	BYTE action;
+	uint8_t enabled;
+	uint8_t type;
+	uint8_t edge;
+	uint8_t action;
 } NUR_PACKED;
 
 struct NUR_CMD_CONFIGGPIO_PARAMS
 {
-	BYTE flags;
+	uint8_t flags;
 	struct NUR_GPIO_SETUP config[NUR_MAX_GPIO];
 } NUR_PACKED;
 
 struct NUR_GPIO_SETSTATE
 {
-	BYTE state;
+	uint8_t state;
 } NUR_PACKED;
 
 struct NUR_CMD_SETGPIO_PARAMS
 {
-	BYTE flags;
+	uint8_t flags;
 	union {
 		struct NUR_GPIO_SETSTATE state;
 		struct NUR_GPIO_SETSTATE states[NUR_MAX_GPIO];
@@ -579,17 +579,17 @@ struct NUR_CMD_SETGPIO_PARAMS
 
 struct NUR_CMD_GETGPIO_PARAMS
 {
-	BYTE flags;
+	uint8_t flags;
 } NUR_PACKED;
 
 struct NUR_SETUPLOAD_PARAMS
 {
-	WORD flags;
-	BYTE regionId;
-	DWORD linkfreq;
-	BYTE miller;
-	BYTE txLevel;
-	BYTE modulation;
+	uint16_t flags;
+	uint8_t regionId;
+	uint32_t linkfreq;
+	uint8_t miller;
+	uint8_t txLevel;
+	uint8_t modulation;
 } NUR_PACKED;
 
 /**
@@ -598,8 +598,8 @@ struct NUR_SETUPLOAD_PARAMS
  */
 struct NUR_RSSI_FILTER
 {
-	char min; /**< Minimum accepted RSSI in dBm. Use 0 to disable filtering. */
-	char max; /**< Maximum accepted RSSI in dBm. Use 0 to disable filtering. */
+	int8_t min; /**< Minimum accepted RSSI in dBm. Use 0 to disable filtering. */
+	int8_t max; /**< Maximum accepted RSSI in dBm. Use 0 to disable filtering. */
 } NUR_PACKED;
 
 /**
@@ -609,124 +609,124 @@ struct NUR_RSSI_FILTER
 */
 struct NUR_AUTOTUNE_SETUP
 {
-	BYTE mode;			/**< Autotune mode setting, bits: @sa AUTOTUNE_MODE_ENABLE, AUTOTUNE_MODE_THRESHOLD_ENABLE. */
-	char threshold_dBm;	/**< Low level threshold in dBm. Do autotune if current reflected power worse than 'threshold_dBm' */
+	uint8_t mode;			/**< Autotune mode setting, bits: @sa AUTOTUNE_MODE_ENABLE, AUTOTUNE_MODE_THRESHOLD_ENABLE. */
+	int8_t threshold_dBm;	/**< Low level threshold in dBm. Do autotune if current reflected power worse than 'threshold_dBm' */
 };
 
 struct NUR_CMD_LOADSETUP_PARAMS
 {
-	DWORD flags;
-	DWORD linkFreq;
-	BYTE rxDecoding; // Miller
-	BYTE txLevel;
-	BYTE txModulation;
-	BYTE regionId;
-	BYTE inventoryQ;
-	BYTE inventorySession;
-	BYTE inventoryRounds;
-	BYTE antennaMask;
-	WORD scanSingleTriggerTimeout;
-	WORD inventoryTriggerTimeout;
-	BYTE selectedAntenna;
-	DWORD opFlags;
-	BYTE inventoryTarget;
-	BYTE inventoryEpcLength;
+	uint32_t flags;
+	uint32_t linkFreq;
+	uint8_t rxDecoding; // Miller
+	uint8_t txLevel;
+	uint8_t txModulation;
+	uint8_t regionId;
+	uint8_t inventoryQ;
+	uint8_t inventorySession;
+	uint8_t inventoryRounds;
+	uint8_t antennaMask;
+	uint16_t scanSingleTriggerTimeout;
+	uint16_t inventoryTriggerTimeout;
+	uint8_t selectedAntenna;
+	uint32_t opFlags;
+	uint8_t inventoryTarget;
+	uint8_t inventoryEpcLength;
 	struct NUR_RSSI_FILTER readRssiFilter;
 	struct NUR_RSSI_FILTER writeRssiFilter;
 	struct NUR_RSSI_FILTER inventoryRssiFilter;
 
-	WORD readTO;
-	WORD writeTO;
-	WORD lockTO;
-	WORD killTO;
+	uint16_t readTO;
+	uint16_t writeTO;
+	uint16_t lockTO;
+	uint16_t killTO;
 
 	/** Defines how the periodic auto-inventory power saving is configured.
 	 * When in use, reader will be power save mode while no tags in view.
 	 */
-	WORD periodSetup;
+	uint16_t periodSetup;
 
 	/** DEPRECATED! Per antenna specific power levels. Use antPowerEx instead. */
-	BYTE antPower[NUR_MAX_ANTENNAS];
+	uint8_t antPower[NUR_MAX_ANTENNAS];
 
 	/** Modify power levels' offset values (-1, 0, 1) NOTE: First entry in array used for all antennas! Rest of the entries are discarded. */
-	char powerOffset[NUR_MAX_ANTENNAS];
+	int8_t powerOffset[NUR_MAX_ANTENNAS];
 
 	/** Bitmask of enabled antennas, support up to 32 antennas. Value 0x1 - 0xFFFFFFFF.
 	 * Example: Value 0x4 means that only antenna 3 is enabled.
 	 * Example: Value 0x30300 means that antennas 9,10,17,18 are enabled.
 	 */
-	DWORD antennaMaskEx;
+	uint32_t antennaMaskEx;
 
 	/** Runtime auto tuning settings. */
 	struct NUR_AUTOTUNE_SETUP autotune;
 
 	/** Per antenna specific tx levels. Array of the per antenna tx level values. Range is 0..19; Defaults to -1. If set to -1 default tx level is used from the module setup. */
-	char antPowerEx[NUR_MAX_ANTENNAS_EX];
+	int8_t antPowerEx[NUR_MAX_ANTENNAS_EX];
 
 	/** The receiver sensitivity field. 0 = Nominal, 1 = Low, 2 = High */
-	BYTE rxSensitivity;
+	uint8_t rxSensitivity;
 
 	// ADDED NUR2 7.0
-	BYTE rfProfile;
+	uint8_t rfProfile;
 
 	// ADDED NUR2 7.5, NanoNur 10.2
-	WORD toSleepTime;
+	uint16_t toSleepTime;
 } NUR_PACKED;
 
 struct NUR_CMD_BEEP_PARAMS
 {
-	DWORD freq;
-	DWORD time;
-	BYTE duty;
+	uint32_t freq;
+	uint32_t time;
+	uint8_t duty;
 } NUR_PACKED;
 
 struct NUR_CMD_RESETTARGET_PARAMS
 {
-	BYTE session;
-	BYTE targetIsA;
+	uint8_t session;
+	uint8_t targetIsA;
 } NUR_PACKED;
 
 #define NUR_CMD_CUSTOMHOP_PARAMS	NUR_CUSTOMHOP_PARAMS
 
 struct NUR_CMD_ETHDEV_PARAMS
 {
-	BYTE titleLength;
-	BYTE title[32];
-	BYTE mask[4];	//Subnet mask (used in static IP mode)
-	BYTE gw[4];		//Gateway	(used in static IP)
-	BYTE addrType; //Address type 0=DHCP(default) 1=STATIC
-	BYTE staticip[4];
-	BYTE serverPort[2];
-	BYTE hostmode;	 //Mode: 0=Server (default) 1=Client
-	BYTE hostip[4]; //Client host IP (if Mode=Client)
-	BYTE hostPort[2];	//Client mode port (if Mode=Client)
-	BYTE reserved[8]; //For future usage
+	uint8_t titleLength;
+	uint8_t title[32];
+	uint8_t mask[4];	//Subnet mask (used in static IP mode)
+	uint8_t gw[4];		//Gateway	(used in static IP)
+	uint8_t addrType; //Address type 0=DHCP(default) 1=STATIC
+	uint8_t staticip[4];
+	uint8_t serverPort[2];
+	uint8_t hostmode;	 //Mode: 0=Server (default) 1=Client
+	uint8_t hostip[4]; //Client host IP (if Mode=Client)
+	uint8_t hostPort[2];	//Client mode port (if Mode=Client)
+	uint8_t reserved[8]; //For future usage
 } NUR_PACKED;
 
 struct NUR_CMD_EPCENUMPARAM
 {
-	BYTE ant;			/* Selected antenna */
-	BYTE twAddr;		/* Word address of the TID data i.e. where to read the TID info */
-	BYTE twLen;			/* TID data word length. */
-	BYTE useBlWrite;	/* Block write type if any: 0 = no, 1 = one word, 2 = two words. */
-	BYTE startVal[8];	/* Start value of the enumerated value in the EPC : equals to "unsigned long long" i.e. 64-bit unsigned integer. */
-	BYTE epcLen;		/* EPC length in words; 4...8 */
-	BYTE modAddr;		/* Bit address where the enumerated value is located in the EPC memory */
-	BYTE bitLen;		/* Bit length of the modified value: 1...64 */
-	BYTE bReset;		/* If non-zero then the current TID information is cleared */
-	BYTE baseEPC[MAX_EE_EPCLEN];	/* Base EPC to be used & modified. */
+	uint8_t ant;			/* Selected antenna */
+	uint8_t twAddr;		/* Word address of the TID data i.e. where to read the TID info */
+	uint8_t twLen;			/* TID data word length. */
+	uint8_t useBlWrite;	/* Block write type if any: 0 = no, 1 = one word, 2 = two words. */
+	uint8_t startVal[8];	/* Start value of the enumerated value in the EPC : equals to "unsigned long long" i.e. 64-bit unsigned integer. */
+	uint8_t epcLen;		/* EPC length in words; 4...8 */
+	uint8_t modAddr;		/* Bit address where the enumerated value is located in the EPC memory */
+	uint8_t bitLen;		/* Bit length of the modified value: 1...64 */
+	uint8_t bReset;		/* If non-zero then the current TID information is cleared */
+	uint8_t baseEPC[MAX_EE_EPCLEN];	/* Base EPC to be used & modified. */
 } NUR_PACKED;
 
 #define PRODUCTION_TUNE_MAGICLEN    8
 
 struct NUR_CMD_TUNECOMMANDPARAM
 {
-	DWORD type;
-	DWORD antenna;
-	DWORD band;
-	DWORD userSave;
-	int goodEnough;
-	BYTE code[PRODUCTION_TUNE_MAGICLEN];
+	uint32_t type;
+	uint32_t antenna;
+	uint32_t band;
+	uint32_t userSave;
+	int32_t goodEnough;
+	uint8_t code[PRODUCTION_TUNE_MAGICLEN];
 } NUR_PACKED;
 
 /////////////////////////////////////////////////////////////////////////////
@@ -734,28 +734,28 @@ struct NUR_CMD_TUNECOMMANDPARAM
 
 struct NUR_TUNERESULT
 {
-	int I;
-	int Q;
-	int dBm;
+	int32_t I;
+	int32_t Q;
+	int32_t dBm;
 } NUR_PACKED;
 
 struct NUR_CMD_TUNEANTENNA_RESP
 {
-	int antenna;
-	int resrv[3];
+	int32_t antenna;
+	int32_t resrv[3];
 	struct NUR_TUNERESULT bands[NR_TUNEBANDS];
 } NUR_PACKED;
 
 struct NUR_SINGLETUNE_RESP
 {
-	int antenna;
-	int band;
+	int32_t antenna;
+	int32_t band;
 	struct NUR_TUNERESULT result;
 } NUR_PACKED;
 
 struct NUR_CMD_BAUDRATE_RESP
 {
-	BYTE setting;
+	uint8_t setting;
 } NUR_PACKED;
 
 struct NUR_CMD_PING_RESP
@@ -770,20 +770,20 @@ struct NUR_CMD_GETMODE_RESP
 
 struct NUR_CMD_SCANSINGLE_RESP
 {
-	BYTE antennaID;
-	signed char rssi;
-	char scaledRssi;
-	BYTE epcdata[NUR_MAX_EPC_LENGTH];
-	BYTE epcLen; // NOTE: Does not come in response from module, calculated from packet size
+	uint8_t antennaID;
+	int8_t rssi;
+	uint8_t scaledRssi;
+	uint8_t epcdata[NUR_MAX_EPC_LENGTH];
+	uint8_t epcLen; // NOTE: Does not come in response from module, calculated from packet size
 } NUR_PACKED;
 
 struct NUR_CMD_INVENTORY_RESP
 {
-	WORD numTagsFound;
-	WORD numTagsMem;
-	BYTE roundsDone;
-	WORD collisions;
-	BYTE Q;
+	uint16_t numTagsFound;
+	uint16_t numTagsMem;
+	uint8_t roundsDone;
+	uint16_t collisions;
+	uint8_t Q;
 } NUR_PACKED;
 
 enum NUR_NXPCMD_EASALARM_FLAGS
@@ -800,16 +800,16 @@ enum MONZA4_QTBITS
 
 struct NUR_CMD_MZ4_RESP
 {
-	WORD qtParam;
+	uint16_t qtParam;
 } NUR_PACKED;
 
 struct NUR_CMD_TRACETAG_RESP
 {
-	signed char rssi;
-	char scaledRssi;
-	BYTE antennaID;
-	BYTE epcdata[NUR_MAX_EPC_LENGTH];
-	BYTE epcLen; // NOTE: Does not come in response from module, calculated from packet size
+	int8_t rssi;
+	uint8_t scaledRssi;
+	uint8_t antennaID;
+	uint8_t epcdata[NUR_MAX_EPC_LENGTH];
+	uint8_t epcLen; // NOTE: Does not come in response from module, calculated from packet size
 } NUR_PACKED;
 
 
@@ -821,55 +821,55 @@ struct NUR_CMD_TRACETAG_RESP
 
 struct NUR_CMD_READERINFO_RESP
 {
-	DWORD version;
-	BYTE serialLen;
+	uint32_t version;
+	uint8_t serialLen;
 	char serial[RINFO_SERIAL_LEN];
-	BYTE altSerialLen;
+	uint8_t altSerialLen;
 	char altSerial[RINFO_ALTSERIAL_LEN];
-	BYTE nameLen;
+	uint8_t nameLen;
 	char name[RINFO_NAME_LENGTH];
-	BYTE fccIdLen;
+	uint8_t fccIdLen;
 	char fccId[RINFO_FCCID_LEN];
-	BYTE hwVersionLen;
+	uint8_t hwVersionLen;
 	char hwVersion[RINFO_HWVERSION_LEN];
-	BYTE swVersion[3];
-	BYTE numGpio;
-	BYTE numSensors;
-	BYTE numRegions;
-	BYTE numAntennas;
-	BYTE maxAntennas; // Added in 4.9
+	uint8_t swVersion[3];
+	uint8_t numGpio;
+	uint8_t numSensors;
+	uint8_t numRegions;
+	uint8_t numAntennas;
+	uint8_t maxAntennas; // Added in 4.9
 } NUR_PACKED;
 
 #define SZ_DEVCAPS		128
 struct NUR_CMD_DEVCAPS_RESP
 {
-	DWORD dwSize;
-	DWORD flagSet1;
-	DWORD flagSet2;
+	uint32_t dwSize;
+	uint32_t flagSet1;
+	uint32_t flagSet2;
 
-	int maxTxdBm;
-	int txAttnStep;
-	WORD maxTxmW;
-	WORD txSteps;
+	int32_t maxTxdBm;
+	int32_t txAttnStep;
+	uint16_t maxTxmW;
+	uint16_t txSteps;
 
-	WORD szTagBuffer;
-	WORD curCfgMaxAnt;
-	WORD curCfgMaxGPIO;
+	uint16_t szTagBuffer;
+	uint16_t curCfgMaxAnt;
+	uint16_t curCfgMaxGPIO;
 
-	WORD chipVersion;
-	WORD moduleType;
-	DWORD moduleConfigFlags;
-	BYTE res[SZ_DEVCAPS - 4*sizeof(DWORD) - 2*sizeof(int) - 7*sizeof(WORD)];
+	uint16_t chipVersion;
+	uint16_t moduleType;
+	uint32_t moduleConfigFlags;
+	uint8_t res[SZ_DEVCAPS - 4*sizeof(uint32_t) - 2*sizeof(int) - 7*sizeof(uint16_t)];
 } NUR_PACKED;
 
 struct NUR_CMD_REGIONINFO_RESP
 {
-	BYTE regionId;
-	DWORD baseFreq;
-	DWORD channelSpacing;
-	BYTE channelCount;
-	DWORD channelTime;
-	BYTE nameLen;
+	uint8_t regionId;
+	uint32_t baseFreq;
+	uint32_t channelSpacing;
+	uint8_t channelCount;
+	uint32_t channelTime;
+	uint8_t nameLen;
 	char name[64];
 } NUR_PACKED;
 
@@ -878,13 +878,13 @@ struct NUR_CMD_REGIONINFO_RESP
 
 struct NUR_GPIO_PIN_STATE
 {
-  BYTE number;
-  BYTE state;
+  uint8_t number;
+  uint8_t state;
 } NUR_PACKED;
 
 struct NUR_CMD_SETGPIO_RESP
 {
-  BYTE mask;
+  uint8_t mask;
   union {
     struct NUR_GPIO_PIN_STATE state;
     struct NUR_GPIO_PIN_STATE states[NUR_MAX_GPIO];
@@ -893,15 +893,15 @@ struct NUR_CMD_SETGPIO_RESP
 
 struct NUR_GPIO_PIN_STATE_RESULT
 {
-	BYTE number;
-	BYTE enabled;
-	BYTE type;
-	BYTE state;
+	uint8_t number;
+	uint8_t enabled;
+	uint8_t type;
+	uint8_t state;
 } NUR_PACKED;
 
 struct NUR_CMD_GETGPIO_RESP
 {
-  BYTE mask;
+  uint8_t mask;
   union {
     struct NUR_GPIO_PIN_STATE_RESULT state;
     struct NUR_GPIO_PIN_STATE_RESULT states[NUR_MAX_GPIO];
@@ -910,28 +910,28 @@ struct NUR_CMD_GETGPIO_RESP
 
 struct NUR_CMD_VERSION_RESP
 {
-	BYTE mode;
-	BYTE vMajor;
-	BYTE vMinor;
-	BYTE vBuild;
-	BYTE otherMajor;
-	BYTE otherMinor;
-	BYTE otherBuild;
+	uint8_t mode;
+	uint8_t vMajor;
+	uint8_t vMinor;
+	uint8_t vBuild;
+	uint8_t otherMajor;
+	uint8_t otherMinor;
+	uint8_t otherBuild;
 } NUR_PACKED;
 
 struct NUR_CMD_GETREFPOWER_RESP
 {
-	int iPart;
-	int qPart;
-	int div;
+	int32_t iPart;
+	int32_t qPart;
+	int32_t div;
 } NUR_PACKED;
 
 struct NUR_CMD_GETREFPOWEREX_RESP
 {
-	int iPart;
-	int qPart;
-	int div;
-	DWORD freqKhz;
+	int32_t iPart;
+	int32_t qPart;
+	int32_t div;
+	uint32_t freqKhz;
 } NUR_PACKED;
 
 /**
@@ -939,9 +939,9 @@ struct NUR_CMD_GETREFPOWEREX_RESP
  */
 struct NUR_HOPEVENT_DATA
 {
-	BYTE hopTableId;	/**< Current hop table region id */
-	BYTE freqIdx;		/**< Index of frequency in hop table */
-	DWORD freqKhz;		/**< Frequency in kHz */
+	uint8_t hopTableId;	/**< Current hop table region id */
+	uint8_t freqIdx;		/**< Index of frequency in hop table */
+	uint32_t freqKhz;		/**< Frequency in kHz */
 } NUR_PACKED;
 
 /**
@@ -949,11 +949,11 @@ struct NUR_HOPEVENT_DATA
  */
 struct NUR_TUNEEVENT_DATA
 {
-	BYTE cap1;				/**< Tuning capacitor 1 value */
-	BYTE cap2;				/**< Tuning capacitor 2 value */
-	int reflPower_dBm;		/**< Reflected power in dBm*1000 */
-	BYTE antenna;			/**< Antenna ID */
-	DWORD freqKhz;			/**< Frequency in kHz */
+	uint8_t cap1;				/**< Tuning capacitor 1 value */
+	uint8_t cap2;				/**< Tuning capacitor 2 value */
+	int32_t reflPower_dBm;		/**< Reflected power in dBm*1000 */
+	uint8_t antenna;			/**< Antenna ID */
+	uint32_t freqKhz;			/**< Frequency in kHz */
 } NUR_PACKED;
 
 /**
@@ -962,20 +962,20 @@ struct NUR_TUNEEVENT_DATA
  */
 struct NUR_CUSTOMHOP_PARAMS_EX
 {
-	DWORD count;        /**< Number of channels in this table. */
-	DWORD chTime;       /**< Channel time in milliseconds. */
-	DWORD silentTime;   /**< Silent time in milliseconds, if any, between channel change. */
-	DWORD maxBLF;       /**< Maximum link frequency. */
-	DWORD Tari;         /**< Tari: 1=12.5 and 2 = 25. */
-	int lbtThresh;      /**< LBT threshold; minimum value is -90. */
-	DWORD maxTxLevel;   /**< Maximum TX level; range is 0...19. */
-	DWORD freqs[NUR_MAX_CUSTOM_FREQS];  /**< Frequencies in kHz. Number of populated antries is stated with the 'count'. */
+	uint32_t count;        /**< Number of channels in this table. */
+	uint32_t chTime;       /**< Channel time in milliseconds. */
+	uint32_t silentTime;   /**< Silent time in milliseconds, if any, between channel change. */
+	uint32_t maxBLF;       /**< Maximum link frequency. */
+	uint32_t Tari;         /**< Tari: 1=12.5 and 2 = 25. */
+	int32_t lbtThresh;      /**< LBT threshold; minimum value is -90. */
+	uint32_t maxTxLevel;   /**< Maximum TX level; range is 0...19. */
+	uint32_t freqs[NUR_MAX_CUSTOM_FREQS];  /**< Frequencies in kHz. Number of populated antries is stated with the 'count'. */
 } NUR_PACKED;
 
 struct NUR_CMD_RESP
 {
-	BYTE cmd;
-	BYTE status;
+	uint8_t cmd;
+	uint8_t status;
 
 	union {
 		struct NUR_CMD_PING_RESP			ping;
@@ -1003,7 +1003,7 @@ struct NUR_CMD_RESP
 		struct NUR_HOPEVENT_DATA			hopeventdata;
 		struct NUR_TUNEEVENT_DATA			tuneeventdata;
 
-		BYTE rawdata[1];
+		uint8_t rawdata[1];
 	};
 } NUR_PACKED;
 
@@ -1025,8 +1025,8 @@ struct NUR_CMD_RESP
 }
 
 #define PacketWordPos(Buf, w, Pos) { \
-	(Buf)[(Pos)+1] = (BYTE)(((WORD)(w)>>8) & 0xFF); \
-	(Buf)[(Pos)+0] = (BYTE)((WORD)(w) & 0xFF); \
+	(Buf)[(Pos)+1] = (uint8_t)(((uint16_t)(w)>>8) & 0xFF); \
+	(Buf)[(Pos)+0] = (uint8_t)((uint16_t)(w) & 0xFF); \
 }
 
 #define PacketWord(Buf, w, Ptr) { \
@@ -1035,10 +1035,10 @@ struct NUR_CMD_RESP
 }
 
 #define PacketDwordPos(Buf, dw, Pos) { \
-	(Buf)[(Pos)+3] = (BYTE)(((DWORD)(dw)>>24) & 0xFF); \
-	(Buf)[(Pos)+2] = (BYTE)(((DWORD)(dw)>>16) & 0xFF); \
-	(Buf)[(Pos)+1] = (BYTE)(((DWORD)(dw)>>8) & 0xFF); \
-	(Buf)[(Pos)+0] = (BYTE)((DWORD)(dw) & 0xFF); \
+	(Buf)[(Pos)+3] = (uint8_t)(((uint32_t)(dw)>>24) & 0xFF); \
+	(Buf)[(Pos)+2] = (uint8_t)(((uint32_t)(dw)>>16) & 0xFF); \
+	(Buf)[(Pos)+1] = (uint8_t)(((uint32_t)(dw)>>8) & 0xFF); \
+	(Buf)[(Pos)+0] = (uint8_t)((uint32_t)(dw) & 0xFF); \
 }
 
 #define PacketDword(Buf, dw, Ptr) { \
@@ -1050,14 +1050,14 @@ struct NUR_CMD_RESP
 #define PacketShort PacketWord
 
 #define PacketQwordPos(Buf, ull, Pos) { \
-	(Buf)[(Pos)+7] = (BYTE)(((QWORD)(ull)>>56) & 0xFF); \
-	(Buf)[(Pos)+6] = (BYTE)(((QWORD)(ull)>>48) & 0xFF); \
-	(Buf)[(Pos)+5] = (BYTE)(((QWORD)(ull)>>40) & 0xFF); \
-	(Buf)[(Pos)+4] = (BYTE)(((QWORD)(ull)>>32) & 0xFF); \
-	(Buf)[(Pos)+3] = (BYTE)(((QWORD)(ull)>>24) & 0xFF); \
-	(Buf)[(Pos)+2] = (BYTE)(((QWORD)(ull)>>16) & 0xFF); \
-	(Buf)[(Pos)+1] = (BYTE)(((QWORD)(ull)>>8) & 0xFF); \
-	(Buf)[(Pos)+0] = (BYTE)((QWORD)(ull) & 0xFF); \
+	(Buf)[(Pos)+7] = (uint8_t)(((uint64_t)(ull)>>56) & 0xFF); \
+	(Buf)[(Pos)+6] = (uint8_t)(((uint64_t)(ull)>>48) & 0xFF); \
+	(Buf)[(Pos)+5] = (uint8_t)(((uint64_t)(ull)>>40) & 0xFF); \
+	(Buf)[(Pos)+4] = (uint8_t)(((uint64_t)(ull)>>32) & 0xFF); \
+	(Buf)[(Pos)+3] = (uint8_t)(((uint64_t)(ull)>>24) & 0xFF); \
+	(Buf)[(Pos)+2] = (uint8_t)(((uint64_t)(ull)>>16) & 0xFF); \
+	(Buf)[(Pos)+1] = (uint8_t)(((uint64_t)(ull)>>8) & 0xFF); \
+	(Buf)[(Pos)+0] = (uint8_t)((uint64_t)(ull) & 0xFF); \
 }
 
 #define PacketQword(Buf, ull, Ptr) { \
@@ -1068,44 +1068,44 @@ struct NUR_CMD_RESP
 /**********************/
 
 #define BytesToWord(Buf) \
-	((WORD)((WORD)(Buf)[0] | \
-	((WORD)(Buf)[1] << 8)))
+	((uint16_t)((uint16_t)(Buf)[0] | \
+	((uint16_t)(Buf)[1] << 8)))
 
 #define BytesToWordPos(Buf, Pos) \
-	((WORD)((WORD)(Buf)[(Pos)+0] | \
-	((WORD)(Buf)[(Pos)+1] << 8)))
+	((uint16_t)((uint16_t)(Buf)[(Pos)+0] | \
+	((uint16_t)(Buf)[(Pos)+1] << 8)))
 
 #define BytesToDword(Buf) \
-	((DWORD)((DWORD)(Buf)[0] | \
-	((DWORD)(Buf)[1] << 8) | \
-	((DWORD)(Buf)[2] << 16) | \
-	((DWORD)(Buf)[3] << 24)))
+	((uint32_t)((uint32_t)(Buf)[0] | \
+	((uint32_t)(Buf)[1] << 8) | \
+	((uint32_t)(Buf)[2] << 16) | \
+	((uint32_t)(Buf)[3] << 24)))
 
 #define BytesToDwordPos(Buf, Pos) \
-	((DWORD)((DWORD)(Buf)[(Pos)+0] | \
-	((DWORD)(Buf)[(Pos)+1] << 8) | \
-	((DWORD)(Buf)[(Pos)+2] << 16) | \
-	((DWORD)(Buf)[(Pos)+3] << 24)))
+	((uint32_t)((uint32_t)(Buf)[(Pos)+0] | \
+	((uint32_t)(Buf)[(Pos)+1] << 8) | \
+	((uint32_t)(Buf)[(Pos)+2] << 16) | \
+	((uint32_t)(Buf)[(Pos)+3] << 24)))
 
 #define BytesToQword(Buf) \
-	((QWORD)((QWORD)(Buf)[0] | \
-	((QWORD)(Buf)[1] << 8) | \
-	((QWORD)(Buf)[2] << 16) | \
-	((QWORD)(Buf)[3] << 24) | \
-	((QWORD)(Buf)[4] << 32) | \
-	((QWORD)(Buf)[5] << 40) | \
-	((QWORD)(Buf)[6] << 48) | \
-	((QWORD)(Buf)[7] << 56)))
+	((uint64_t)((uint64_t)(Buf)[0] | \
+	((uint64_t)(Buf)[1] << 8) | \
+	((uint64_t)(Buf)[2] << 16) | \
+	((uint64_t)(Buf)[3] << 24) | \
+	((uint64_t)(Buf)[4] << 32) | \
+	((uint64_t)(Buf)[5] << 40) | \
+	((uint64_t)(Buf)[6] << 48) | \
+	((uint64_t)(Buf)[7] << 56)))
 
 #define BytesToQwordPos(Buf, Pos) \
-	((QWORD)((Buf)[(Pos)+0] | \
-	((QWORD)(Buf)[(Pos)+1] << 8) | \
-	((QWORD)(Buf)[(Pos)+2] << 16) | \
-	((QWORD)(Buf)[(Pos)+3] << 24) | \
-	((QWORD)(Buf)[(Pos)+4] << 32) | \
-	((QWORD)(Buf)[(Pos)+5] << 40) | \
-	((QWORD)(Buf)[(Pos)+6] << 48) | \
-	((QWORD)(Buf)[(Pos)+7] << 56)))
+	((uint64_t)((Buf)[(Pos)+0] | \
+	((uint64_t)(Buf)[(Pos)+1] << 8) | \
+	((uint64_t)(Buf)[(Pos)+2] << 16) | \
+	((uint64_t)(Buf)[(Pos)+3] << 24) | \
+	((uint64_t)(Buf)[(Pos)+4] << 32) | \
+	((uint64_t)(Buf)[(Pos)+5] << 40) | \
+	((uint64_t)(Buf)[(Pos)+6] << 48) | \
+	((uint64_t)(Buf)[(Pos)+7] << 56)))
 
 /** @} */ // end of NURPROTO
 

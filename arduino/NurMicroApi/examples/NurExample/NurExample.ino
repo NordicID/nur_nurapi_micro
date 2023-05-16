@@ -32,11 +32,11 @@ SoftwareSerial swSerial(10, 11); // RX, TX
 #endif
 
 // The API's communication buffers. Adjust if needed
-static BYTE ApiRxBuffer[256];
-static BYTE ApiTxBuffer[128];
+static uint8_t ApiRxBuffer[256];
+static uint8_t ApiTxBuffer[128];
 
 // True if NUR module detected in setup()
-BOOL NurAvailable = FALSE;
+int32_t NurAvailable = FALSE;
 
 // NurMicroApi handle
 static struct NUR_API_HANDLE gApi =
@@ -46,23 +46,23 @@ static struct NUR_API_HANDLE gApi =
   NULL, // TransportWriteDataFunction
   NULL, // UnsolEventHandler;
 
-  NULL, // BYTE *TxBuffer;
-  0,    // DWORD TxBufferLen;
+  NULL, // uint8_t *TxBuffer;
+  0,    // uint32_t TxBufferLen;
 
-  NULL, //BYTE *RxBuffer;
-  0,    // DWORD RxBufferLen;
-  0,    // DWORD RxBufferUsed;
+  NULL, // uint8_t *RxBuffer;
+  0,    // uint32_t RxBufferLen;
+  0,    // uint32_t RxBufferUsed;
 
-  0,    // DWORD respLen;
+  0,    // uint32_t respLen;
   NULL  // struct NUR_CMD_RESP *resp;
 };
 
 // Read buffer from NUR serial
 // If no data available, this function should take 500us - 1000us
-int nur_serial_read(struct NUR_API_HANDLE *hNurApi, BYTE *buffer, DWORD bufferLen, DWORD *bytesRead)
+int nur_serial_read(struct NUR_API_HANDLE *hNurApi, uint8_t *buffer, uint32_t bufferLen, uint32_t *bytesRead)
 {
-  DWORD dwRead = 0;
-  DWORD retryCount = 200;
+  uint32_t dwRead = 0;
+  uint32_t retryCount = 200;
 
   // Wait for data
   while (dwRead == 0 && retryCount-- > 0)
@@ -85,9 +85,9 @@ int nur_serial_read(struct NUR_API_HANDLE *hNurApi, BYTE *buffer, DWORD bufferLe
 }
 
 // Write buffer to NUR serial
-int nur_serial_write(struct NUR_API_HANDLE *hNurApi, BYTE *buffer, DWORD bufferLen, DWORD *bytesWritten)
+int nur_serial_write(struct NUR_API_HANDLE *hNurApi, uint8_t *buffer, uint32_t bufferLen, uint32_t *bytesWritten)
 {
-  DWORD dwWritten = 0;
+  uint32_t dwWritten = 0;
 
   while (dwWritten < bufferLen)
   {
