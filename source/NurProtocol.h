@@ -1,14 +1,14 @@
-/* 
+/*
 	Copyright (c) 2017 Nordic ID.
 
-	Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), 
-	to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
+	to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
 	and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
 	The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 	WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
@@ -21,8 +21,8 @@
 #define NUR_PACKED
 #endif
 
-#ifdef __cplusplus 
-extern "C" { 
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 /** @defgroup NURPROTO NUR Protocol
@@ -289,7 +289,7 @@ struct NUR_IDBUFFER_ENTRY
 	BYTE dataLen;
 	WORD pc;
 	BYTE channel;
-	BYTE antennaId;	
+	BYTE antennaId;
 	BYTE epcLen;
 	/* EPC + associated data */
 	BYTE *epcData;
@@ -317,7 +317,7 @@ struct NUR_CMD_PAGEWRITE_PARAMS
 } NUR_PACKED;
 
 struct NUR_CMD_SCRATCHDATA_PARAMS
-{	
+{
 	BYTE read;
 	BYTE page;
 	BYTE offset;
@@ -329,7 +329,7 @@ struct NUR_CMD_SCRATCHDATA_PARAMS
 struct NUR_CMD_APPVALIDATE_PARAMS
 {
 	DWORD appsize;
-	DWORD appcrc;	
+	DWORD appcrc;
 } NUR_PACKED;
 
 struct NUR_CMD_SCANSINGLE_PARAMS
@@ -349,10 +349,10 @@ struct NUR_CMD_INVENTORYEX_FILTER
 	BYTE truncate;
 	BYTE target;
 	BYTE action;
-	BYTE bank;	
-	DWORD address;	
+	BYTE bank;
+	DWORD address;
 	BYTE maskbitlen;
-	BYTE maskdata[NUR_MAX_SELMASK];	
+	BYTE maskdata[NUR_MAX_SELMASK];
 } NUR_PACKED;
 
 struct NUR_CMD_INVENTORYEX_PARAMS
@@ -419,7 +419,7 @@ struct NUR_WRITEBLOCK_EX
 	union {
 		DWORD address32;
 		ULONGLONG address64;
-	};	
+	};
 	BYTE wordcount;
 	BYTE blSize;
 	BYTE data[255];
@@ -515,7 +515,7 @@ struct NUR_NXP_PARAMS
 	BYTE flags;
 	DWORD passwd;
 	BOOL set;
-    
+
 	struct NUR_SINGULATIONBLOCK sb;
 } NUR_PACKED;
 
@@ -528,7 +528,7 @@ struct NUR_MONZAQTPARAMS
 	//BOOL persist;
 	BOOL reduce;
 	BOOL pubmem;
-	struct NUR_SINGULATIONBLOCK sb;  
+	struct NUR_SINGULATIONBLOCK sb;
 } NUR_PACKED;
 
 struct NUR_CMD_TRACETAG_PARAMS
@@ -564,7 +564,7 @@ struct NUR_CMD_CONFIGGPIO_PARAMS
 } NUR_PACKED;
 
 struct NUR_GPIO_SETSTATE
-{  
+{
 	BYTE state;
 } NUR_PACKED;
 
@@ -572,8 +572,8 @@ struct NUR_CMD_SETGPIO_PARAMS
 {
 	BYTE flags;
 	union {
-		struct NUR_GPIO_SETSTATE state;    
-		struct NUR_GPIO_SETSTATE states[NUR_MAX_GPIO];    
+		struct NUR_GPIO_SETSTATE state;
+		struct NUR_GPIO_SETSTATE states[NUR_MAX_GPIO];
 	};
 } NUR_PACKED;
 
@@ -604,7 +604,7 @@ struct NUR_RSSI_FILTER
 
 /**
  * Module's autotune setup. Supported from FW 5.0-A in L2 module.
- * 
+ *
  * @sa AUTOTUNE_MODE_ENABLE, AUTOTUNE_MODE_THRESHOLD_ENABLE
 */
 struct NUR_AUTOTUNE_SETUP
@@ -713,7 +713,7 @@ struct NUR_CMD_EPCENUMPARAM
 	BYTE epcLen;		/* EPC length in words; 4...8 */
 	BYTE modAddr;		/* Bit address where the enumerated value is located in the EPC memory */
 	BYTE bitLen;		/* Bit length of the modified value: 1...64 */
-	BYTE bReset;		/* If non-zero then the current TID information is cleared */	
+	BYTE bReset;		/* If non-zero then the current TID information is cleared */
 	BYTE baseEPC[MAX_EE_EPCLEN];	/* Base EPC to be used & modified. */
 } NUR_PACKED;
 
@@ -725,7 +725,7 @@ struct NUR_CMD_TUNECOMMANDPARAM
 	DWORD antenna;
 	DWORD band;
 	DWORD userSave;
-	int goodEnough;	
+	int goodEnough;
 	BYTE code[PRODUCTION_TUNE_MAGICLEN];
 } NUR_PACKED;
 
@@ -808,7 +808,7 @@ struct NUR_CMD_TRACETAG_RESP
 	signed char rssi;
 	char scaledRssi;
 	BYTE antennaID;
-	BYTE epcdata[NUR_MAX_EPC_LENGTH];	
+	BYTE epcdata[NUR_MAX_EPC_LENGTH];
 	BYTE epcLen; // NOTE: Does not come in response from module, calculated from packet size
 } NUR_PACKED;
 
@@ -825,7 +825,7 @@ struct NUR_CMD_READERINFO_RESP
 	BYTE serialLen;
 	char serial[RINFO_SERIAL_LEN];
 	BYTE altSerialLen;
-	char altSerial[RINFO_ALTSERIAL_LEN];	
+	char altSerial[RINFO_ALTSERIAL_LEN];
 	BYTE nameLen;
 	char name[RINFO_NAME_LENGTH];
 	BYTE fccIdLen;
@@ -846,16 +846,16 @@ struct NUR_CMD_DEVCAPS_RESP
 	DWORD dwSize;
 	DWORD flagSet1;
 	DWORD flagSet2;
-	
+
 	int maxTxdBm;
-	int txAttnStep;	
+	int txAttnStep;
 	WORD maxTxmW;
 	WORD txSteps;
-	
+
 	WORD szTagBuffer;
 	WORD curCfgMaxAnt;
 	WORD curCfgMaxGPIO;
-	
+
 	WORD chipVersion;
 	WORD moduleType;
 	DWORD moduleConfigFlags;
@@ -877,7 +877,7 @@ struct NUR_CMD_REGIONINFO_RESP
 #define NUR_CMD_CONFIGGPIO_RESP		NUR_CMD_CONFIGGPIO_PARAMS
 
 struct NUR_GPIO_PIN_STATE
-{  
+{
   BYTE number;
   BYTE state;
 } NUR_PACKED;
@@ -916,7 +916,7 @@ struct NUR_CMD_VERSION_RESP
 	BYTE vBuild;
 	BYTE otherMajor;
 	BYTE otherMinor;
-	BYTE otherBuild;	
+	BYTE otherBuild;
 } NUR_PACKED;
 
 struct NUR_CMD_GETREFPOWER_RESP
@@ -986,16 +986,16 @@ struct NUR_CMD_RESP
 		struct NUR_CMD_SCANSINGLE_RESP	    scansingle;
 		struct NUR_CMD_TRACETAG_RESP		tracetag;
 		struct NUR_CMD_REGIONINFO_RESP		regioninfo;
-		struct NUR_CMD_READERINFO_RESP		readerinfo;		
+		struct NUR_CMD_READERINFO_RESP		readerinfo;
 		struct NUR_CMD_SENSORS_RESP			sensors;
 		struct NUR_CMD_CONFIGGPIO_RESP		gpioconfig;
 		struct NUR_CMD_SETGPIO_RESP			gpioset;
 		struct NUR_CMD_GETGPIO_RESP			gpioget;
-		struct NUR_CMD_TUNEANTENNA_RESP		antennatune;		
-		struct NUR_CMD_MZ4_RESP				mz4;						    	
-    	struct NUR_CMD_VERSION_RESP			versions;    	
+		struct NUR_CMD_TUNEANTENNA_RESP		antennatune;
+		struct NUR_CMD_MZ4_RESP				mz4;
+    	struct NUR_CMD_VERSION_RESP			versions;
     	struct NUR_SINGLETUNE_RESP			tuneres;
-		struct NUR_CMD_DEVCAPS_RESP			devcaps;		
+		struct NUR_CMD_DEVCAPS_RESP			devcaps;
 		struct NUR_CMD_IRCONFIG_PARAMS		irconfig;
 		struct NUR_CUSTOMHOP_PARAMS_EX		customhop;
 		struct NUR_CMD_GETREFPOWER_RESP		getrefpower;
@@ -1109,7 +1109,7 @@ struct NUR_CMD_RESP
 
 /** @} */ // end of NURPROTO
 
-#ifdef __cplusplus 
+#ifdef __cplusplus
 }
 #endif
 

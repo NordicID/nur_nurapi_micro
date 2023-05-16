@@ -1,14 +1,14 @@
-/* 
+/*
 	Copyright (c) 2017 Nordic ID.
 
-	Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), 
-	to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
+	to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
 	and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
 	The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 	WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
@@ -35,7 +35,7 @@ BOOL open_serial(struct NUR_API_HANDLE *hApi, int number, DWORD baudrate)
 	char thePort[20];
 	COMMTIMEOUTS to;
 	DCB dcb;
-	
+
 	if (gSerial != INVALID_HANDLE_VALUE) {
 		CloseHandle(gSerial);
 		gSerial = INVALID_HANDLE_VALUE;
@@ -64,7 +64,7 @@ BOOL open_serial(struct NUR_API_HANDLE *hApi, int number, DWORD baudrate)
 	SetCommState(gSerial, &dcb);
 
 	// Set "ByteTimeout" to 1ms
-	ZeroMemory(&to, sizeof(to));	
+	ZeroMemory(&to, sizeof(to));
 	to.ReadIntervalTimeout = MAXDWORD;
 	to.ReadTotalTimeoutMultiplier = MAXDWORD;
 	to.ReadTotalTimeoutConstant = 1;
@@ -75,7 +75,7 @@ BOOL open_serial(struct NUR_API_HANDLE *hApi, int number, DWORD baudrate)
 	hApi->TransportReadDataFunction = (pTransportReadDataFunction)serial_read;
 	hApi->TransportWriteDataFunction = (pTransportWriteDataFunction)serial_write;
 
-	PurgeComm(gSerial, PURGE_RXCLEAR|PURGE_TXCLEAR);	
+	PurgeComm(gSerial, PURGE_RXCLEAR|PURGE_TXCLEAR);
 
 	return TRUE;
 }
@@ -93,16 +93,16 @@ static int serial_read(struct NUR_API_HANDLE *hNurApi, BYTE *buffer, DWORD buffe
 	DWORD dwRead = 0;
 	DWORD dwError;
 
-	if (gSerial == INVALID_HANDLE_VALUE) 
+	if (gSerial == INVALID_HANDLE_VALUE)
 		return NUR_ERROR_TR_NOT_CONNECTED;
 
-	if (!ReadFile(gSerial, buffer, bufferLen, &dwRead, NULL)) 
+	if (!ReadFile(gSerial, buffer, bufferLen, &dwRead, NULL))
 	{
 		dwError = GetLastError();
-			
-		if (dwError == ERROR_ACCESS_DENIED || 
+
+		if (dwError == ERROR_ACCESS_DENIED ||
 		    dwError == ERROR_INVALID_HANDLE ||
-		    dwError == ERROR_FILE_NOT_FOUND) 
+		    dwError == ERROR_FILE_NOT_FOUND)
 		{
 			// Happens when usb converter is unplugged
 			return NUR_ERROR_TR_NOT_CONNECTED;
@@ -118,7 +118,7 @@ static int serial_read(struct NUR_API_HANDLE *hNurApi, BYTE *buffer, DWORD buffe
 
 	*bytesRead = dwRead;
 
-	return (gSerial != INVALID_HANDLE_VALUE) ? NUR_SUCCESS : NUR_ERROR_TR_NOT_CONNECTED;	
+	return (gSerial != INVALID_HANDLE_VALUE) ? NUR_SUCCESS : NUR_ERROR_TR_NOT_CONNECTED;
 }
 
 static int serial_write(struct NUR_API_HANDLE *hNurApi, BYTE *buffer, DWORD bufferLen, DWORD *bytesWritten)
@@ -128,18 +128,18 @@ static int serial_write(struct NUR_API_HANDLE *hNurApi, BYTE *buffer, DWORD buff
 	DWORD totalWritten = 0;
 	DWORD dwError;
 
-	if (gSerial == INVALID_HANDLE_VALUE) 
+	if (gSerial == INVALID_HANDLE_VALUE)
 		return NUR_ERROR_TR_NOT_CONNECTED;
-	
-	while (totalWritten < bufferLen && gSerial != INVALID_HANDLE_VALUE) 
+
+	while (totalWritten < bufferLen && gSerial != INVALID_HANDLE_VALUE)
 	{
-		if (!WriteFile(gSerial, buffer + totalWritten, bufferLen - totalWritten, &dwWritten, NULL)) 
+		if (!WriteFile(gSerial, buffer + totalWritten, bufferLen - totalWritten, &dwWritten, NULL))
 		{
 			dwError = GetLastError();
-			
-			if (dwError == ERROR_ACCESS_DENIED || 
+
+			if (dwError == ERROR_ACCESS_DENIED ||
 				dwError == ERROR_INVALID_HANDLE ||
-				dwError == ERROR_FILE_NOT_FOUND) 
+				dwError == ERROR_FILE_NOT_FOUND)
 			{
 				// Happens when usb converter is unplugged
 				return NUR_ERROR_TR_NOT_CONNECTED;
@@ -159,8 +159,6 @@ static int serial_write(struct NUR_API_HANDLE *hNurApi, BYTE *buffer, DWORD buff
 		*/
 
 		totalWritten += dwWritten;
-
-		
 
 		if (dwWritten == 0) {
 			return NUR_ERROR_TR_TIMEOUT;

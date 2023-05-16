@@ -1,14 +1,14 @@
-/* 
+/*
 Copyright (c) 2017 Nordic ID.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), 
-to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
 and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
@@ -78,7 +78,7 @@ static int NurApiEnsureMode(struct NUR_API_HANDLE *hNurApi, char desiredMode)
 {
 	int error;
 	int retries = 5;
-	char curMode = 'X';	
+	char curMode = 'X';
 
 	// Get current mode
 	error = NurApiGetMode(hNurApi, &curMode);
@@ -128,7 +128,7 @@ static int ProgramProgressFunction(struct NUR_API_HANDLE *hNurApi, struct NUR_PR
 	return 0;
 }
 
-static int NurApiProgramFile(struct NUR_API_HANDLE *hNurApi, WORD startPage, BYTE validateCmd, const char *fname) 
+static int NurApiProgramFile(struct NUR_API_HANDLE *hNurApi, WORD startPage, BYTE validateCmd, const char *fname)
 {
 	int error = 0;
 	FILE *fp;
@@ -167,8 +167,8 @@ static int NurApiProgramFile(struct NUR_API_HANDLE *hNurApi, WORD startPage, BYT
 	return error;
 }
 
-static int NurApiProgramAppFile(struct NUR_API_HANDLE *hNurApi, const char *fname) 
-{	
+static int NurApiProgramAppFile(struct NUR_API_HANDLE *hNurApi, const char *fname)
+{
 	int error = NurApiEnsureMode(hNurApi, 'B');
 	if (error == NUR_SUCCESS)
 		error = NurApiProgramFile(hNurApi, NUR_APP_FIRST_PAGE, NUR_CMD_APPVALIDATE, fname);
@@ -177,14 +177,14 @@ static int NurApiProgramAppFile(struct NUR_API_HANDLE *hNurApi, const char *fnam
 	return error;
 }
 
-static int NurApiProgramBootloaderFile(struct NUR_API_HANDLE *hNurApi, const char *fname) 
+static int NurApiProgramBootloaderFile(struct NUR_API_HANDLE *hNurApi, const char *fname)
 {
 	int error = NurApiEnsureMode(hNurApi, 'B');
 	if (error == NUR_SUCCESS)
 		error = NurApiProgramFile(hNurApi, NUR_BL_FIRST_PAGE, NUR_CMD_BLVALIDATE, fname);
 	if (error == NUR_SUCCESS)
 		error = NurApiEnsureMode(hNurApi, 'A');
-	return error;	
+	return error;
 }
 
 int InitNurApiHandle(struct NUR_API_HANDLE *hApi)
@@ -220,7 +220,7 @@ static void handle_connection()
 		close_serial();
 		gConnected = FALSE;
 	}
-	else 
+	else
 	{
 		int num = -1;
 		printf("Enter COM number (baud 115200): " );
@@ -279,7 +279,7 @@ static void handle_readerinfo()
 
 	rc = NurApiGetReaderInfo(hApi);
 
-	if (rc == NUR_SUCCESS) { 		
+	if (rc == NUR_SUCCESS) {
 		ri = &hApi->resp->readerinfo;
 		printf("* Reader information *\n");
 
@@ -337,7 +337,7 @@ static char *RxDecToStr(int rxd)
 	case 0: return "FM0";
 	case 1:
 	case 2:
-	case 3: 
+	case 3:
 		sprintf(buf, "M-%d", (1<<rxd));
 		break;
 	default:
@@ -384,7 +384,7 @@ static void handle_setup_set_txlevel()
 
 	cls();
 	printf("Set TX level (0 - 19): ");
-	if (scanf("%d", &txlevel) == 1) 
+	if (scanf("%d", &txlevel) == 1)
 	{
 		params.flags = NUR_SETUP_TXLEVEL;
 		params.txLevel = txlevel;
@@ -399,7 +399,7 @@ static void handle_setup_set_txlevel()
 			printf("SetModuleSetup error. Code = %d.\n", rc);
 		}
 	}
-	else 
+	else
 	{
 		printf("Invalid input\n");
 	}
@@ -441,7 +441,7 @@ static void handle_inventoryex_epcmask(BYTE *epcMask, int epcMaskByteLen)
 
 	// Clear tag buffer
 	rc = NurApiClearTags(hApi);
-	if (rc == NUR_SUCCESS) 
+	if (rc == NUR_SUCCESS)
 	{
 		if (epcMask && epcMaskByteLen > 0)
 		{
@@ -475,7 +475,7 @@ static void handle_inventoryex_epcmask(BYTE *epcMask, int epcMaskByteLen)
 			// No epcMask defined, just perform normal inventory
 			rc = NurApiInventory(hApi, NULL);
 		}
-		if (rc == NUR_SUCCESS) 
+		if (rc == NUR_SUCCESS)
 		{
 			int tagCount;
 #if 1
@@ -519,10 +519,10 @@ static void handle_inventory()
 
 	// Clear tag buffer
 	rc = NurApiClearTags(hApi);
-	if (rc == NUR_SUCCESS) 
+	if (rc == NUR_SUCCESS)
 	{
 		rc = NurApiInventory(hApi, NULL); // Pass NULL as params, uses default inventory settings from module setup
-		if (rc == NUR_SUCCESS) 
+		if (rc == NUR_SUCCESS)
 		{
 			int tagCount;
 #if 1
@@ -568,7 +568,7 @@ static void handle_tune()
 	printf(" NOTE: Make sure antenna is in open space\n\n");
 
 	printf("Enter Antenna ID (0 = first): " );
-	if (scanf("%d", &ant) == 1) 
+	if (scanf("%d", &ant) == 1)
 	{
 		printf("Tune in progress, may take up to 25 secs\n");
 		rc = NurApiTuneAntenna(hApi, ant, TRUE, TRUE, res);
@@ -605,7 +605,7 @@ static void handle_tune()
 			}
 		}
 	}
-	else 
+	else
 	{
 		printf("Invalid input\n");
 	}
@@ -624,7 +624,7 @@ static void handle_app_update()
 		printf("\n");
 		handle_versions(0);
 	}
-	else 
+	else
 	{
 		wait_key();
 	}
@@ -635,11 +635,11 @@ static void handle_cont_carrier()
 	int num=-1;
 
 	cls();
-	
+
 	printf("Enter Channel number: " );
 	if (scanf("%d", &num) == 1) {
 		int ret = NurApiContCarrier(hApi,num);
-		
+
 		if(ret!=0)
 		{
 			printf("Fail to set continuous carrier: %d\n",ret );
@@ -658,7 +658,7 @@ static void handle_cont_carrier()
 		printf("Invalid input\n");
 		wait_key();
 	}
-			
+
 }
 
 unsigned char GetBinVal(char ch)
@@ -679,16 +679,16 @@ int HexStringToBin(char* str,BYTE* buf,int length)
 {
 	int strPtr=0;
 	int x=0;
-	
+
 	if(length>62) length=62;
-		
+
 	for(x=0;x<length;x++)
-	{			
+	{
 		strPtr=x*2;
 		buf[x]=GetBinVal(str[strPtr]);
 		buf[x]<<=4;
-		buf[x]+=GetBinVal(str[strPtr+1]);		
-	}    
+		buf[x]+=GetBinVal(str[strPtr+1]);
+	}
 
 	return x/2;
 }
@@ -696,7 +696,7 @@ int HexStringToBin(char* str,BYTE* buf,int length)
 void ShowEnabledAntennas(DWORD antMask)
 {
 	int x=0;
-	printf("EnabledAntennas:\n");	
+	printf("EnabledAntennas:\n");
 
 	for(x=0;x<32;x++)
 	{
@@ -710,8 +710,8 @@ void ShowEnabledAntennas(DWORD antMask)
 static void handle_selectAntenna()
 {
 	struct NUR_CMD_LOADSETUP_PARAMS *setup;
-	int flags;	
-	int antNum, rc;	
+	int flags;
+	int antNum, rc;
 
 	if (!gConnected)
 		return;
@@ -719,26 +719,26 @@ static void handle_selectAntenna()
 	flags = NUR_SETUP_ANTMASKEX;
 
 	cls();
-	
+
 	rc = NurApiGetModuleSetup(hApi, flags);
 	if (rc == NUR_SUCCESS) {
-		setup = &hApi->resp->loadsetup;					
+		setup = &hApi->resp->loadsetup;
 		ShowEnabledAntennas(setup->antennaMaskEx);
 	}
 	else
 	{
 		printf("GetModuleSetup error. Code = %d.\n", rc);
-		wait_key();	
+		wait_key();
 	}
-	
+
 	printf("Enable/Disable Antenna # (1 - 16): ");
-	if (scanf("%d", &antNum) == 1) 
+	if (scanf("%d", &antNum) == 1)
 	{
 		if(antNum>0 && antNum<=16)
 		{
-			setup->flags = NUR_SETUP_ANTMASKEX;		
+			setup->flags = NUR_SETUP_ANTMASKEX;
 			//Toggle specified bit on antennaMaskEx
-			setup->antennaMaskEx ^= 1UL << (antNum-1);			
+			setup->antennaMaskEx ^= 1UL << (antNum-1);
 			ShowEnabledAntennas(setup->antennaMaskEx);
 			//Set new antennaMask to module
 			rc = NurApiSetModuleSetup(hApi, setup);
@@ -751,9 +751,9 @@ static void handle_selectAntenna()
 				printf("SetModuleSetup error. Code = %d.\n", rc);
 			}
 		}
-		else printf("Invalid input\n");		
+		else printf("Invalid input\n");
 	}
-	else 
+	else
 	{
 		printf("Invalid input\n");
 	}
@@ -762,7 +762,7 @@ static void handle_selectAntenna()
 }
 
 static void handle_writeEPC()
-{	
+{
 	int x=0;
 	char curepc[32];	//Current EPC as string
 	char newepc[32];	//New Epc to write as string
@@ -772,7 +772,7 @@ static void handle_writeEPC()
 
 	cls();
 
-	printf("Enter Current EPC: " );	
+	printf("Enter Current EPC: " );
 	if (scanf("%s", &curepc) == 1)
 	if(strlen(curepc) > 1)
 	{
@@ -781,22 +781,22 @@ static void handle_writeEPC()
 				goto INVALID_INPUT;
 		}
 
-		printf("Enter new EPC: " );	
-		if (scanf("%s", &newepc) == 1) 
+		printf("Enter new EPC: " );
+		if (scanf("%s", &newepc) == 1)
 		if(strlen(newepc) > 1)
-		{			
+		{
 			if ((strlen(newepc) % 2) != 0) {
 				printf("EPC must be pairs of two hex chars\n");
 				goto INVALID_INPUT;
 			}
 
-			//convert HEX string to byte array.			
+			//convert HEX string to byte array.
 			epcBufLen = HexStringToBin(curepc,epcBuf,strlen(curepc));
 			wrBufLen = HexStringToBin(newepc,wrBuf,strlen(newepc));
 
 			//printf("epcLen=%d newEpcLen=%d\n",epcBufLen,wrBufLen);
 
-			x = NurApiWriteEPCByEPC(hApi,0,FALSE,epcBuf,epcBufLen,wrBuf,wrBufLen);			
+			x = NurApiWriteEPCByEPC(hApi,0,FALSE,epcBuf,epcBufLen,wrBuf,wrBufLen);
 
 			if(x==4106)
 			{
@@ -806,17 +806,17 @@ static void handle_writeEPC()
 
 			if(x==NUR_SUCCESS)
 				printf("Write success!\n");
-			else printf("Write error = %d\n",x);			
+			else printf("Write error = %d\n",x);
 
 			wait_key();
 			return;
-		}			
+		}
 	}
 
 INVALID_INPUT:
 
 	printf("Invalid input\n");
-	wait_key();	
+	wait_key();
 }
 
 static void handle_writeToUserMem()
@@ -848,10 +848,10 @@ static void handle_writeToUserMem()
 						goto INVALID_INPUT;
 					}
 
-					//convert HEX string to byte array.			
+					//convert HEX string to byte array.
 					epcBufLen = HexStringToBin(curepc, epcBuf, strlen(curepc));
 					wrBufLen = HexStringToBin(newuser, wrBuf, strlen(newuser));
-																				
+
 					x = NurApiWriteTagByEPC(hApi, 0, FALSE, epcBuf, epcBufLen, NUR_BANK_USER, 0,wrBufLen, wrBuf);
 
 					if (x == 4106)
@@ -993,9 +993,9 @@ static void handle_switch_mode()
 	// NOTE: If this is USB device, you'll need to reconnect serial here!
 
 	if (error) {
-		printf("Switch error: %d\n", error);	
+		printf("Switch error: %d\n", error);
 	} else {
-		printf("Mode switched, waiting for device boot\n");	
+		printf("Mode switched, waiting for device boot\n");
 		// Wait for boot event (2 sec)
 		NurApiWaitEvent(hApi, 2000);
 	}
@@ -1019,7 +1019,7 @@ static void options()
 		printf("[1]\tDisconnect\n");
 		printf("[2]\tPing\n");
 		printf("[3]\tVersions\n");
-		printf("[4]\tReader info\n");		
+		printf("[4]\tReader info\n");
 		printf("[5]\tGet setup\n");
 		printf("[6]\tInventory\n");
 		printf("[7]\tInventoryEx select SGTIN-96 tags only\n");
@@ -1057,7 +1057,7 @@ static BOOL do_command()
 	case '1': handle_connection(); break;
 	case '2': handle_ping(); break;
 	case '3': handle_versions(1); break;
-	case '4': handle_readerinfo(); break;		
+	case '4': handle_readerinfo(); break;
 	case '5': handle_setup_get(); break;
 	case '6': handle_inventory(); break;
 	case '7': {
@@ -1066,13 +1066,13 @@ static BOOL do_command()
 		break;
 			  }
 	case '8': handle_tune(); break;
-	case '9': handle_setup_set_txlevel(); break;			
-	case 'e': handle_enable_disable_events(); break;			
-	case 'r': handle_get_reflected_power_ex(); break;			
-	case 's': handle_switch_mode(); break;			
-	case 'u': handle_app_update(); break;		
-	case 'c': handle_cont_carrier(); break;		
-	case 'w': handle_writeEPC(); break;	
+	case '9': handle_setup_set_txlevel(); break;
+	case 'e': handle_enable_disable_events(); break;
+	case 'r': handle_get_reflected_power_ex(); break;
+	case 's': handle_switch_mode(); break;
+	case 'u': handle_app_update(); break;
+	case 'c': handle_cont_carrier(); break;
+	case 'w': handle_writeEPC(); break;
 	case 'p': handle_writeToUserMem(); break;
 	case 'a': handle_selectAntenna(); break;
 

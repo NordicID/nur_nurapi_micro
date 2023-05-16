@@ -1,14 +1,14 @@
-/* 
+/*
 Copyright (c) 2017 Nordic ID.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), 
-to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
 and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
@@ -25,7 +25,7 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 
 #ifdef HAVE_NUR_STRNCPY
 char *nurStrncpy(char *destination, const char *source, int num)
-{	
+{
 	int i;
 	int sourceEnd = 0;
 	for (i=0; i<num; i++)
@@ -44,7 +44,7 @@ char *nurStrncpy(char *destination, const char *source, int num)
 
 #ifdef HAVE_NUR_MEMSET
 void *nurMemset(void *destination, int val, int num)
-{	
+{
 	unsigned char *dstPtr = (unsigned char*)destination;
 	while (num--)
 	{
@@ -56,7 +56,7 @@ void *nurMemset(void *destination, int val, int num)
 
 #ifdef HAVE_NUR_MEMCPY
 void *nurMemcpy(void *destination, const void *source, int num)
-{	
+{
 	unsigned char *srcPtr = (unsigned char*)source;
 	unsigned char *dstPtr = (unsigned char*)destination;
 	while (num--)
@@ -87,7 +87,7 @@ struct NUR_ERRORMSG
 	const char *msg;
 };
 
-static struct NUR_ERRORMSG errors[] = 
+static struct NUR_ERRORMSG errors[] =
 {
 	{ NUR_SUCCESS, "Call succeeded" },
 	{ NUR_NO_ERROR, "Call succeeded" },
@@ -145,7 +145,7 @@ const char * NURAPICONV NurApiGetErrorMessage(int error)
 	int n;
 	for (n=0; n<errorsSize; n++) {
 		if (errors[n].error == error) {
-			return errors[n].msg;			
+			return errors[n].msg;
 		}
 	}
 	return "Unknown Error";
@@ -249,7 +249,7 @@ int NurApiHandlePacketData(struct NUR_API_HANDLE *hNurApi, DWORD bytesToProcess)
 {
 	BYTE *trBuf = hNurApi->TxBuffer;
 
-	while (bytesToProcess-- > 0) 
+	while (bytesToProcess-- > 0)
 	{
 		hNurApi->RxBuffer[hNurApi->RxBufferUsed++] = *trBuf++;
 
@@ -261,7 +261,7 @@ int NurApiHandlePacketData(struct NUR_API_HANDLE *hNurApi, DWORD bytesToProcess)
 				// Got header marker
 				packetHandlerState = STATE_HDR;
 			}
-			else 
+			else
 			{
 				// Invalid header, just ignore data
 				hNurApi->RxBufferUsed = 0;
@@ -270,14 +270,14 @@ int NurApiHandlePacketData(struct NUR_API_HANDLE *hNurApi, DWORD bytesToProcess)
 
 		case STATE_HDR:
 			// Wait for header completely received
-			if (hNurApi->RxBufferUsed == HDR_SIZE) 
+			if (hNurApi->RxBufferUsed == HDR_SIZE)
 			{
 				// Calculate header checksum
 				BYTE headerChecksum = 0xFF;
-				headerChecksum ^= (	hNurApi->RxBuffer[0] ^ 
-									hNurApi->RxBuffer[1] ^ 
-									hNurApi->RxBuffer[2] ^ 
-									hNurApi->RxBuffer[3] ^ 
+				headerChecksum ^= (	hNurApi->RxBuffer[0] ^
+									hNurApi->RxBuffer[1] ^
+									hNurApi->RxBuffer[2] ^
+									hNurApi->RxBuffer[3] ^
 									hNurApi->RxBuffer[4]);
 
 				// Validate checksum
@@ -286,7 +286,7 @@ int NurApiHandlePacketData(struct NUR_API_HANDLE *hNurApi, DWORD bytesToProcess)
 					// Valid header received, go to payload state
 					packetHandlerState = STATE_PAYLOAD;
 				}
-				else 
+				else
 				{
 					// Invalid header checksum, return to idle..
 					hNurApi->RxBufferUsed = 0;
@@ -365,9 +365,9 @@ int NURAPICONV NurApiSetupPacket(struct NUR_API_HANDLE *hNurApi, BYTE cmd, WORD 
 	// Setup packet header
 	TxHeaderPtr->start = PACKET_START;
 	TxHeaderPtr->flags = flags;
-	TxHeaderPtr->payloadlen = payloadLen + 1 + 2; // + cmd + CRC	
+	TxHeaderPtr->payloadlen = payloadLen + 1 + 2; // + cmd + CRC
 
-	if (TxHeaderPtr->payloadlen > NUR_MAX_SEND_SZ) 
+	if (TxHeaderPtr->payloadlen > NUR_MAX_SEND_SZ)
 		return NUR_ERROR_PACKET_TOO_LONG;
 
 	TxHeaderPtr->checksum = CalculateHeaderCheckSum(TxHeaderDataPtr);
@@ -398,7 +398,7 @@ int NURAPICONV NurApiXchPacket(struct NUR_API_HANDLE *hNurApi, BYTE cmd, WORD pa
 	if (cmd != 0)
 	{
 		error = NurApiSetupPacket(hNurApi, cmd, payloadLen, 0, &packetLen);
-		if (error != NUR_SUCCESS) 
+		if (error != NUR_SUCCESS)
 			return error;
 
 		// Write packet to module
@@ -421,7 +421,7 @@ WAITMORE:
 	{
 		// Read data
 		bytesOutput = 0;
-		error = hNurApi->TransportReadDataFunction(hNurApi, hNurApi->TxBuffer, hNurApi->TxBufferLen, &bytesOutput);		
+		error = hNurApi->TransportReadDataFunction(hNurApi, hNurApi->TxBuffer, hNurApi->TxBufferLen, &bytesOutput);
 		if (error != NUR_SUCCESS && error != NUR_ERROR_TR_TIMEOUT) {
 			// Transport error
 			return error;
@@ -444,7 +444,7 @@ WAITMORE:
 	{
 		// Packet was not ready within timeout
 		return NUR_ERROR_TR_TIMEOUT;
-	}	
+	}
 
 	if (RxHeaderPtr->flags & PACKET_FLAG_UNSOL)
 	{
@@ -495,7 +495,7 @@ int NURAPICONV NurApiGetReaderInfo(struct NUR_API_HANDLE *hNurApi)
 	struct NUR_CMD_READERINFO_RESP ri;
 	int error;
 	WORD pos;
-	BYTE *ptr;	
+	BYTE *ptr;
 
 	// Reset response
 	nurMemset(&ri, 0, sizeof(ri));
@@ -504,7 +504,7 @@ int NURAPICONV NurApiGetReaderInfo(struct NUR_API_HANDLE *hNurApi)
 	error = NurApiXchPacket(hNurApi, NUR_CMD_GETREADERINFO, 0, DEF_TIMEOUT);
 	LOGIFERROR(error);
 
-	if (error != NUR_SUCCESS) 
+	if (error != NUR_SUCCESS)
 	{
 		return error;
 	}
@@ -518,14 +518,14 @@ int NURAPICONV NurApiGetReaderInfo(struct NUR_API_HANDLE *hNurApi)
 	if (ri.version == NUR_READERINFO_VERSION1)
 	{
 		pos += sizeof(DWORD);
-	} 
-	else 
+	}
+	else
 	{
 		// Really old modules sends reader info without version..
 		ri.version = 1;
 	}
 
-	// Read serial number len 
+	// Read serial number len
 	ri.serialLen = ptr[pos++];
 	// Read serial number string
 	nurMemcpy(ri.serial, &ptr[pos], ri.serialLen);
@@ -537,7 +537,7 @@ int NURAPICONV NurApiGetReaderInfo(struct NUR_API_HANDLE *hNurApi)
 		ri.altSerialLen = ptr[pos++];
 		nurMemcpy(ri.altSerial, &ptr[pos], ri.altSerialLen);
 		pos += ri.altSerialLen;
-	} 
+	}
 
 	// Read module name len
 	ri.nameLen = ptr[pos++];
@@ -587,7 +587,7 @@ int NURAPICONV NurApiGetRegionInfo(struct NUR_API_HANDLE *hNurApi, BYTE regionId
 	error = NurApiXchPacket(hNurApi, NUR_CMD_GETREGIONINFO, payloadLen, DEF_TIMEOUT);
 	LOGIFERROR(error);
 
-	if (error == NUR_SUCCESS) 
+	if (error == NUR_SUCCESS)
 	{
 		// NULL terminate string
 		hNurApi->resp->regioninfo.name[hNurApi->resp->regioninfo.nameLen] = '\0';
@@ -605,7 +605,7 @@ int NURAPICONV NurApiStoreCurrentSetup(struct NUR_API_HANDLE *hNurApi, BYTE flag
 int NURAPICONV NurApiSetBaudrate(struct NUR_API_HANDLE *hNurApi, BYTE setting)
 {
 	TxPayloadDataPtr[0] = setting;
-	return NurApiXchPacket(hNurApi, NUR_CMD_SETBDR, 1, DEF_TIMEOUT);	
+	return NurApiXchPacket(hNurApi, NUR_CMD_SETBDR, 1, DEF_TIMEOUT);
 }
 
 int NURAPICONV NurApiGetBaudrate(struct NUR_API_HANDLE *hNurApi)
@@ -630,10 +630,10 @@ int NURAPICONV NurApiGetFWINFO(struct NUR_API_HANDLE *hNurApi, char *buf, WORD b
 
 static void SetupGetMember(DWORD memberFlag, void *memberPtr, int sizeofMember, DWORD respFlags, BYTE *dataPtr, WORD *dataPos)
 {
-	if ((respFlags & memberFlag) != 0) 
+	if ((respFlags & memberFlag) != 0)
 	{
 		nurMemcpy(memberPtr, &dataPtr[*dataPos], sizeofMember);
-		*dataPos += sizeofMember;				
+		*dataPos += sizeofMember;
 	}
 }
 
@@ -667,10 +667,10 @@ static void ParseModuleSetupResponse(struct NUR_API_HANDLE *hNurApi, DWORD flags
 	GETMEMBER(NUR_SETUP_INVENTORYTO, inventoryTriggerTimeout);
 	GETMEMBER(NUR_SETUP_SELECTEDANT, selectedAntenna);
 	GETMEMBER(NUR_SETUP_OPFLAGS, opFlags);
-	GETMEMBER(NUR_SETUP_INVTARGET, inventoryTarget);		
-	GETMEMBER(NUR_SETUP_INVEPCLEN, inventoryEpcLength);				
-	GETMEMBER(NUR_SETUP_READRSSIFILTER, readRssiFilter);				
-	GETMEMBER(NUR_SETUP_WRITERSSIFILTER, writeRssiFilter);				
+	GETMEMBER(NUR_SETUP_INVTARGET, inventoryTarget);
+	GETMEMBER(NUR_SETUP_INVEPCLEN, inventoryEpcLength);
+	GETMEMBER(NUR_SETUP_READRSSIFILTER, readRssiFilter);
+	GETMEMBER(NUR_SETUP_WRITERSSIFILTER, writeRssiFilter);
 	GETMEMBER(NUR_SETUP_INVRSSIFILTER, inventoryRssiFilter);
 	GETMEMBER(NUR_SETUP_READTIMEOUT, readTO);
 	GETMEMBER(NUR_SETUP_WRITETIMEOUT, writeTO);
@@ -729,14 +729,14 @@ int NURAPICONV NurApiSetModuleSetup(struct NUR_API_HANDLE *hNurApi, struct NUR_C
 	ADDMEMBER(NUR_SETUP_INVENTORYTO, inventoryTriggerTimeout);
 	ADDMEMBER(NUR_SETUP_SELECTEDANT, selectedAntenna);
 	ADDMEMBER(NUR_SETUP_OPFLAGS, opFlags);
-	ADDMEMBER(NUR_SETUP_INVTARGET, inventoryTarget);		
-	ADDMEMBER(NUR_SETUP_INVEPCLEN, inventoryEpcLength);				
+	ADDMEMBER(NUR_SETUP_INVTARGET, inventoryTarget);
+	ADDMEMBER(NUR_SETUP_INVEPCLEN, inventoryEpcLength);
 	ADDMEMBER(NUR_SETUP_READRSSIFILTER, readRssiFilter);
-	ADDMEMBER(NUR_SETUP_WRITERSSIFILTER, writeRssiFilter);				
-	ADDMEMBER(NUR_SETUP_INVRSSIFILTER, inventoryRssiFilter);				
+	ADDMEMBER(NUR_SETUP_WRITERSSIFILTER, writeRssiFilter);
+	ADDMEMBER(NUR_SETUP_INVRSSIFILTER, inventoryRssiFilter);
 	ADDMEMBER(NUR_SETUP_READTIMEOUT, readTO);
-	ADDMEMBER(NUR_SETUP_WRITETIMEOUT, writeTO);				
-	ADDMEMBER(NUR_SETUP_LOCKTIMEOUT, lockTO);				
+	ADDMEMBER(NUR_SETUP_WRITETIMEOUT, writeTO);
+	ADDMEMBER(NUR_SETUP_LOCKTIMEOUT, lockTO);
 	ADDMEMBER(NUR_SETUP_KILLTIMEOUT, killTO);
 	ADDMEMBER(NUR_SETUP_AUTOPERIOD, periodSetup);
 	ADDMEMBER(NUR_SETUP_PERANTPOWER, antPower);
@@ -748,7 +748,7 @@ int NURAPICONV NurApiSetModuleSetup(struct NUR_API_HANDLE *hNurApi, struct NUR_C
 	ADDMEMBER(NUR_SETUP_RFPROFILE, rfProfile);
 	ADDMEMBER(NUR_SETUP_TO_SLEEP_TIME, toSleepTime);
 
-	error = NurApiXchPacket(hNurApi, NUR_CMD_LOADSETUP2, payloadSize, DEF_TIMEOUT);	
+	error = NurApiXchPacket(hNurApi, NUR_CMD_LOADSETUP2, payloadSize, DEF_TIMEOUT);
 	if (error == NUR_SUCCESS || error == NUR_ERROR_INVALID_PARAMETER)
 	{
 		ParseModuleSetupResponse(hNurApi, params->flags);
@@ -759,7 +759,7 @@ int NURAPICONV NurApiSetModuleSetup(struct NUR_API_HANDLE *hNurApi, struct NUR_C
 
 int NURAPICONV NurApiGetModuleSetup(struct NUR_API_HANDLE *hNurApi, DWORD setupFlags)
 {
-	int error;	
+	int error;
 
 	if ((setupFlags & NUR_SETUP_ALL) == 0) {
 		return NUR_ERROR_INVALID_PARAMETER;
@@ -815,13 +815,13 @@ int NURAPICONV NurApiInventoryEx(struct NUR_API_HANDLE *hNurApi,
 		for (n=0; n<params->filterCount; n++)
 		{
 			copySize = 9; // "Header" size.
-			// Calculate filter bytes from bit length	
+			// Calculate filter bytes from bit length
 			copySize += ((params->filters[n].maskbitlen / 8) + ((params->filters[n].maskbitlen % 8) != 0));
 			nurMemcpy(TxPayloadDataPtr + payloadSize, &params->filters[n], copySize);
 			payloadSize += copySize;
 		}
 	}
-	return NurApiXchPacket(hNurApi, NUR_CMD_INVENTORYEX, payloadSize, DEF_LONG_TIMEOUT);	
+	return NurApiXchPacket(hNurApi, NUR_CMD_INVENTORYEX, payloadSize, DEF_LONG_TIMEOUT);
 }
 
 NUR_API int NURAPICONV NurApiGetInventoryReadConfig(struct NUR_API_HANDLE *hNurApi)
@@ -855,7 +855,7 @@ int NURAPICONV NurApiSetCustomHoptableEx(struct NUR_API_HANDLE *hNurApi,
 {
 	WORD payloadSize;
 
-	if	(params->count == 0 || 
+	if	(params->count == 0 ||
 		params->count > NUR_MAX_CUSTOM_FREQS ||
 		params->silentTime > 1000 ||
 		(params->maxBLF != 160000 && params->maxBLF != 256000 && params->maxBLF != 320000) ||
@@ -890,14 +890,14 @@ int NURAPICONV NurApiContCarrier(struct NUR_API_HANDLE *hNurApi, int channel)
 {
 	TxPayloadDataPtr[0] = 0x22;
 	TxPayloadDataPtr[1] = ((BYTE)channel & 0xFF);
-	
-	return  NurApiXchPacket(hNurApi, NUR_CMD_CONTCARR, 2, DEF_TIMEOUT);	
+
+	return  NurApiXchPacket(hNurApi, NUR_CMD_CONTCARR, 2, DEF_TIMEOUT);
 }
 
 int NURAPICONV NurApiStopContCarrier(struct NUR_API_HANDLE *hNurApi)
 {
 	TxPayloadDataPtr[0] = 0x88;
-	return  NurApiXchPacket(hNurApi, NUR_CMD_CONTCARR, 1, DEF_TIMEOUT);	
+	return  NurApiXchPacket(hNurApi, NUR_CMD_CONTCARR, 1, DEF_TIMEOUT);
 }
 
 int NURAPICONV NurApiSetConstantChannelIndex(struct NUR_API_HANDLE *hNurApi, BYTE channelIdx)
@@ -914,7 +914,7 @@ int NURAPICONV ParseIdBuffer(struct NUR_API_HANDLE *hNurApi, pFetchTagsFunction 
 	struct NUR_IDBUFFER_ENTRY entry;
 	int received = 0;
 
-	if (includeIrData) 
+	if (includeIrData)
 		includeMeta = TRUE;
 
 	nurMemset(&entry, 0, sizeof(entry));
@@ -928,7 +928,7 @@ int NURAPICONV ParseIdBuffer(struct NUR_API_HANDLE *hNurApi, pFetchTagsFunction 
 		if (blockLen == 0)
 			break;
 
-		if (includeMeta) 
+		if (includeMeta)
 		{
 			if (includeIrData)
 			{
@@ -949,8 +949,8 @@ int NURAPICONV ParseIdBuffer(struct NUR_API_HANDLE *hNurApi, pFetchTagsFunction 
 
 				// Copy: pc, channel
 				nurMemcpy(&entry.pc, &buffer[pos], 3);
-				blockLen -= 3;			  
-				pos += 3;				
+				blockLen -= 3;
+				pos += 3;
 			}
 		}
 
@@ -967,14 +967,14 @@ int NURAPICONV ParseIdBuffer(struct NUR_API_HANDLE *hNurApi, pFetchTagsFunction 
 		else
 		{
 			// EPC only
-			entry.epcLen = blockLen;			
+			entry.epcLen = blockLen;
 		}
 
 		// Set data pointer
 		entry.epcData = &buffer[pos];
 
 		// Call tag callback
-		if (tagFunc) 
+		if (tagFunc)
 		{
 			if (tagFunc(hNurApi, &entry) != NUR_SUCCESS) {
 				break;
@@ -982,7 +982,7 @@ int NURAPICONV ParseIdBuffer(struct NUR_API_HANDLE *hNurApi, pFetchTagsFunction 
 		}
 
 		// Advance to next tag in buffer
-		pos += blockLen;		
+		pos += blockLen;
 		received++;
 	}
 
@@ -1001,12 +1001,12 @@ int NURAPICONV NurApiFetchTags(struct NUR_API_HANDLE *hNurApi, BOOL includeMeta,
 	}
 
 	error = NurApiXchPacket(hNurApi, includeMeta ? NUR_CMD_GETMETABUF : NUR_CMD_GETIDBUF, payloadSize, DEF_TIMEOUT);
-	if (error == NUR_SUCCESS) 
+	if (error == NUR_SUCCESS)
 	{
 		parseRet = ParseIdBuffer(hNurApi, tagFunc, hNurApi->resp->rawdata, RxPayloadLen, includeMeta, (RxHeaderPtr->flags & PACKET_FLAG_IRDATA) != 0);
 	}
 
-	if (tagsReceived) 
+	if (tagsReceived)
 		*tagsReceived = parseRet;
 
 	return error;
@@ -1020,7 +1020,7 @@ int NURAPICONV NurApiFetchTagAt(struct NUR_API_HANDLE *hNurApi, BOOL includeMeta
 	PacketDword(TxPayloadDataPtr, tagNum, &payloadSize);
 
 	error = NurApiXchPacket(hNurApi, includeMeta ? NUR_CMD_GETMETABUF : NUR_CMD_GETIDBUF, payloadSize, DEF_TIMEOUT);
-	if (error == NUR_SUCCESS) 
+	if (error == NUR_SUCCESS)
 	{
 		ParseIdBuffer(hNurApi, tagFunc, hNurApi->resp->rawdata, RxPayloadLen, includeMeta, (RxHeaderPtr->flags & PACKET_FLAG_IRDATA) != 0);
 	}
@@ -1056,7 +1056,7 @@ int NURAPICONV NurApiTraceTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_TRA
 
 	LOGIFERROR(error);
 
-	if (error == NUR_SUCCESS) 
+	if (error == NUR_SUCCESS)
 	{
 		// Calculate epc data length
 		hNurApi->resp->tracetag.epcLen = (BYTE)(RxPayloadLen - 3); // - rssi, scaledRssi, antennaID
@@ -1069,7 +1069,7 @@ static void WriteCommonSingulationBlock(struct NUR_SINGULATED_CMD_PARAMS *params
 {
 	int hdrSize;
 
-	if (!(params->flags & RW_SEC)) 
+	if (!(params->flags & RW_SEC))
 		params->passwd = 0;
 
 	// Common RW
@@ -1077,10 +1077,10 @@ static void WriteCommonSingulationBlock(struct NUR_SINGULATED_CMD_PARAMS *params
 	//PacketDword(payloadBuffer, params->passwd, payloadSize);
 	PacketDword(payloadBuffer, GET_DWORD(params->passwd), payloadSize);
 
-	if (params->flags & RW_SBP) 
+	if (params->flags & RW_SBP)
 	{
 		// Singlation block present
-		// Calculate bytes to follow from bit length	
+		// Calculate bytes to follow from bit length
 		params->sb.bytestofollow = (BYTE)(((params->sb.maskbitlen / 8) + ((params->sb.maskbitlen % 8) != 0)));
 
 		hdrSize = (params->flags & RW_EA1) ? 11 : 7;
@@ -1099,8 +1099,8 @@ static void WriteCommonSingulationBlock(struct NUR_SINGULATED_CMD_PARAMS *params
 }
 
 #ifdef CONFIG_GENERIC_READ
-int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi, 
-							 struct NUR_CMD_READ_PARAMS *params, 
+int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi,
+							 struct NUR_CMD_READ_PARAMS *params,
 							 BYTE *rdBuffer)
 {
 	int error;
@@ -1126,7 +1126,7 @@ int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi,
 	} else {
 		PacketDword(payloadBuffer, GET_DWORD(rb->address32), &payloadSize);
 	}
-	PacketByte(payloadBuffer, rb->wordcount, &payloadSize);	
+	PacketByte(payloadBuffer, rb->wordcount, &payloadSize);
 
 	error = NurApiXchPacket(hNurApi, NUR_CMD_READ, payloadSize, DEF_LONG_TIMEOUT);
 	if (error == NUR_ERROR_G2_TAG_RESP)
@@ -1149,11 +1149,11 @@ int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi,
 int NurApiWriteEPC(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured,
 				   BYTE sBank, DWORD sAddress, int sMaskBitLength, BYTE *sMask,
 				   BYTE *newEpcBuffer, DWORD newEpcBufferLen)
-{	
+{
 	BYTE wrBuffer[NUR_MAX_EPC_LENGTH + 2];
 	DWORD paddedEpcBufferLen = 0;
 	WORD pc = 0;
-			
+
 	if (newEpcBufferLen < 2 || newEpcBufferLen > NUR_MAX_EPC_LENGTH || sMaskBitLength > NUR_MAX_SELMASKBITS) {
 		RETLOGERROR(NUR_ERROR_INVALID_PARAMETER);
 	}
@@ -1164,13 +1164,13 @@ int NurApiWriteEPC(struct NUR_API_HANDLE *hNurApi, DWORD passwd, BOOL secured,
 
 	// Set EPC length in words
 	pc = (WORD)((paddedEpcBufferLen/2) << 11);
-	
+
 	// Add PC (big endian)
 	PacketWordPos(wrBuffer, NUR_HTONS(pc), 0);
-	
+
 	// Add EPC
 	nurMemcpy(&wrBuffer[2], newEpcBuffer, newEpcBufferLen);
-		
+
 	if ((newEpcBufferLen % 2) != 0) {
 		return NUR_ERROR_NOT_WORD_BOUNDARY;
 	}
@@ -1197,7 +1197,7 @@ int NURAPICONV NurApiWriteSingulatedTag32(struct NUR_API_HANDLE *hNurApi, DWORD 
 	int error;
 	int wrWordCount = 0;
 	struct NUR_CMD_WRITE_PARAMS wrParams;
-		
+
 	//printf("NurApiWriteSingulatedTag32 Bank=%x sAddress=%x maskBitLen=%d wrBank=%x wrAddr=%x wrByteCnt=%d\n",sBank,sAddress,sMaskBitLength,wrBank,wrAddress,wrByteCount);
 
 	nurMemset(&wrParams, 0, sizeof(wrParams));
@@ -1209,7 +1209,7 @@ int NURAPICONV NurApiWriteSingulatedTag32(struct NUR_API_HANDLE *hNurApi, DWORD 
 	if ((wrByteCount % 2) != 0) {
 		return NUR_ERROR_NOT_WORD_BOUNDARY;
 	}
-	
+
 	if (sMaskBitLength > 0 && sMaskBitLength <= NUR_MAX_SELMASKBITS && sMask != NULL)
 	{
 		DWORD byteLen = (sMaskBitLength / 8) + ((sMaskBitLength % 8) != 0);
@@ -1223,7 +1223,7 @@ int NURAPICONV NurApiWriteSingulatedTag32(struct NUR_API_HANDLE *hNurApi, DWORD 
 
 
 	wrWordCount = wrByteCount / 2;
-	
+
 	wrParams.wb.address32 = wrAddress;
 	wrParams.wb.bank = wrBank;
 	wrParams.wb.wordcount = (BYTE)wrWordCount;
@@ -1268,7 +1268,7 @@ int NURAPICONV NurApiWriteTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_WRI
 	} else {
 		PacketDword(payloadBuffer, GET_DWORD(wb->address32), &payloadSize);
 	}
-	PacketByte(payloadBuffer, wb->wordcount, &payloadSize);		
+	PacketByte(payloadBuffer, wb->wordcount, &payloadSize);
 	PacketBytes(payloadBuffer, wb->data, wb->bytestofollow - hdrSize, &payloadSize);
 
 	error = NurApiXchPacket(hNurApi, NUR_CMD_WRITE, payloadSize, DEF_LONG_TIMEOUT);
@@ -1282,19 +1282,19 @@ int NURAPICONV NurApiWriteTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_WRI
 #endif
 
 int NURAPICONV NurApiScanSingle(struct NUR_API_HANDLE *hNurApi, WORD timeout)
-{	
+{
 	int error;
 
 	PacketWordPos(TxPayloadDataPtr, timeout, 0);
 	error = NurApiXchPacket(hNurApi, NUR_CMD_SCANSINGLE, 2, timeout + 1000);
 	if (error == NUR_ERROR_G2_TAG_RESP)
 	{
-		// Tag error 
+		// Tag error
 		error = TranslateTagError(hNurApi->resp->rawdata[0]);
 	}
 	LOGIFERROR(error);
 
-	if (error == NUR_SUCCESS) 
+	if (error == NUR_SUCCESS)
 	{
 		hNurApi->resp->scansingle.epcLen = (BYTE)(RxPayloadLen - 3);
 	}
@@ -1317,7 +1317,7 @@ int NURAPICONV NurApiTuneAntenna(struct NUR_API_HANDLE *hNurApi, int antenna, BO
 	error = NurApiXchPacket(hNurApi, NUR_CMD_TUNEANTENNA, sizeof(*cmd), 25000);
 	LOGIFERROR(error);
 
-	if (error == NUR_SUCCESS) 
+	if (error == NUR_SUCCESS)
 	{
 		if (dBmResults!=NULL)
 		{
@@ -1334,7 +1334,7 @@ int NURAPICONV NurApiSetGPIOConfig(struct NUR_API_HANDLE *hNurApi, struct NUR_CM
 	DWORD dwSize = 1; // flags
 	int i, gpioFlag = 1;
 
-	for (i=0; i<NUR_MAX_GPIO; i++) 
+	for (i=0; i<NUR_MAX_GPIO; i++)
 	{
 		if (gpioFlag & gpioParams->flags) {
 			dwSize += sizeof(struct NUR_GPIO_SETUP);
@@ -1363,7 +1363,7 @@ int NURAPICONV NurApiSetGPIOStatus(struct NUR_API_HANDLE *hNurApi, int gpio, BOO
 	dwSize = sizeof(setState->flags) + sizeof(setState->state);
 
 	error = NurApiXchPacket(hNurApi, NUR_CMD_SETGPIO, (WORD)dwSize, DEF_TIMEOUT);
-	if (error==NUR_NO_ERROR) 
+	if (error==NUR_NO_ERROR)
 	{
 		if (state != hNurApi->resp->gpioset.state.state) {
 			error = NUR_ERROR_INVALID_PARAMETER;
@@ -1377,20 +1377,20 @@ int NURAPICONV NurApiGetGPIOStatus(struct NUR_API_HANDLE *hNurApi, int gpio)
 {
 	struct NUR_CMD_GETGPIO_PARAMS *getState = (struct NUR_CMD_GETGPIO_PARAMS *)TxPayloadDataPtr;
 	getState->flags = (1<<gpio);
-	return NurApiXchPacket(hNurApi, NUR_CMD_GETGPIO, sizeof(*getState), DEF_TIMEOUT);	
+	return NurApiXchPacket(hNurApi, NUR_CMD_GETGPIO, sizeof(*getState), DEF_TIMEOUT);
 }
 
-int NURAPICONV NurApiEnterBoot(struct NUR_API_HANDLE *hNurApi) 
+int NURAPICONV NurApiEnterBoot(struct NUR_API_HANDLE *hNurApi)
 {
 	return NurApiXchPacket(hNurApi, NUR_CMD_ENTERBOOT, 0, DEF_TIMEOUT);
 }
 
-int NURAPICONV NurApiModuleRestart(struct NUR_API_HANDLE *hNurApi) 
+int NURAPICONV NurApiModuleRestart(struct NUR_API_HANDLE *hNurApi)
 {
 	return NurApiXchPacket(hNurApi, NUR_CMD_RESTART, 0, DEF_TIMEOUT);
 }
 
-int NURAPICONV NurApiGetMode(struct NUR_API_HANDLE *hNurApi, char *mode) 
+int NURAPICONV NurApiGetMode(struct NUR_API_HANDLE *hNurApi, char *mode)
 {
 	int error = NurApiXchPacket(hNurApi, NUR_CMD_GETMODE, 0, DEF_TIMEOUT);
 	if (error == NUR_SUCCESS) {
@@ -1467,7 +1467,7 @@ static const DWORD crc32Table[256] = {
 };
 
 DWORD NURAPICONV NurCRC32(DWORD crc, const BYTE *buf, DWORD len)
-{	
+{
 	crc ^= 0xFFFFFFFF;
 	while (len--) {
 		crc = (crc >> 8) ^ crc32Table[(crc ^ *buf++) & 0xFF];
@@ -1477,7 +1477,7 @@ DWORD NURAPICONV NurCRC32(DWORD crc, const BYTE *buf, DWORD len)
 
 #define NUR_PROGRAM_RETRIES 5
 
-int NURAPICONV NurApiProgramBuffer(struct NUR_API_HANDLE *hNurApi, pProgramProgressFunction prgFn, WORD startPage, BYTE validateCmd, BYTE *buffer, DWORD bufferLen) 
+int NURAPICONV NurApiProgramBuffer(struct NUR_API_HANDLE *hNurApi, pProgramProgressFunction prgFn, WORD startPage, BYTE validateCmd, BYTE *buffer, DWORD bufferLen)
 {
 	int error = NUR_SUCCESS;
 	DWORD numPages = 0;
@@ -1496,7 +1496,7 @@ int NURAPICONV NurApiProgramBuffer(struct NUR_API_HANDLE *hNurApi, pProgramProgr
 	numPages = bufferLen / NUR_FLASH_PAGE_SIZE;
 	numPagesReminder = bufferLen % NUR_FLASH_PAGE_SIZE;
 	if (numPagesReminder > 0)
-		numPages++;	
+		numPages++;
 
 	notificationData.error = 0;
 	notificationData.totalPages = numPages;
@@ -1505,7 +1505,7 @@ int NURAPICONV NurApiProgramBuffer(struct NUR_API_HANDLE *hNurApi, pProgramProgr
 		return NUR_ERROR_NOT_READY;
 	}
 
-	while (writePos < bufferLen) 
+	while (writePos < bufferLen)
 	{
 		notificationData.curPage = currentPage - startPage;
 		if (prgFn && (*prgFn)(hNurApi, &notificationData) != 0) {
@@ -1556,7 +1556,7 @@ int NURAPICONV NurApiProgramBuffer(struct NUR_API_HANDLE *hNurApi, pProgramProgr
 		writePos += pageSize;
 	}
 
-	if (error == NUR_SUCCESS && validateCmd != 0) 
+	if (error == NUR_SUCCESS && validateCmd != 0)
 	{
 		appCRC = NurCRC32(0, buffer, bufferLen);
 		appValidateParams->appcrc = appCRC;
@@ -1582,7 +1582,7 @@ int NURAPICONV NurApiProgramBuffer(struct NUR_API_HANDLE *hNurApi, pProgramProgr
 	return error;
 }
 
-int NURAPICONV NurApiProgramApp(struct NUR_API_HANDLE *hNurApi, pProgramProgressFunction prgFn, BYTE *buffer, DWORD bufferLen) 
+int NURAPICONV NurApiProgramApp(struct NUR_API_HANDLE *hNurApi, pProgramProgressFunction prgFn, BYTE *buffer, DWORD bufferLen)
 {
 	return NurApiProgramBuffer(hNurApi, prgFn, NUR_APP_FIRST_PAGE, NUR_CMD_APPVALIDATE, buffer, bufferLen);
 }
@@ -1619,13 +1619,13 @@ DWORD GET_U32(void *dwSrc)
 	dw |= b[1];
 	dw <<= 8;
 	dw |= b[0];
-	return dw;	
+	return dw;
 }
 
 QWORD GET_U64(void *qwSrc)
 {
-	QWORD qw;	
-	nurMemcpy(&qw, qwSrc, 8);	
+	QWORD qw;
+	nurMemcpy(&qw, qwSrc, 8);
 	return qw;
 }
 
