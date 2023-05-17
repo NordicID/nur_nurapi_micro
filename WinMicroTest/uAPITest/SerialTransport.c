@@ -123,7 +123,6 @@ static int serial_read(struct NUR_API_HANDLE *hNurApi, uint8_t *buffer, uint32_t
 
 static int serial_write(struct NUR_API_HANDLE *hNurApi, uint8_t *buffer, uint32_t bufferLen, uint32_t *bytesWritten)
 {
-	int x;
 	uint32_t dwWritten = 0;
 	uint32_t totalWritten = 0;
 	uint32_t dwError;
@@ -148,15 +147,6 @@ static int serial_write(struct NUR_API_HANDLE *hNurApi, uint8_t *buffer, uint32_
 				return NUR_ERROR_TRANSPORT;
 			}
 		}
-
-		/*
-		printf("WR:");
-		for(x=0;x<dwWritten;x++)
-		{
-			printf("%.2X",buffer[totalWritten + x]);
-		}
-		printf("\n");
-		*/
 
 		totalWritten += dwWritten;
 

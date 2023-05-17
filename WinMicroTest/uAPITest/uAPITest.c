@@ -102,7 +102,7 @@ static int NurApiEnsureMode(struct NUR_API_HANDLE *hNurApi, char desiredMode)
 	}
 
 	if (curMode != desiredMode) {
-		printf("NurApiEnsureMode(%c) ERROR (%d) Could not change mode to '%c', current mode '%c'\n", error, desiredMode, curMode);
+		printf("NurApiEnsureMode(%c) ERROR (%d) Could not change mode to '%c', current mode '%c'\n", desiredMode, error, desiredMode, curMode);
 	}
 
 	//printf("NurApiEnsureMode(%c) DONE (%d); curMode %c\n", desiredMode, error, curMode);
@@ -889,7 +889,7 @@ static int CalcReflPower(int iPart, int qPart, int div) {
 	t = (double) ((iPart * iPart) + (qPart * qPart));
 	dRfdBm = sqrt(t);
 
-	if (!_isnan(dRfdBm)) {
+	if (!isnan(dRfdBm)) {
 		dRfdBm = dRfdBm / div;
 		if (dRfdBm <= 0)
 			dRfdBm = 0;
