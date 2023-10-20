@@ -245,11 +245,11 @@ static uint16_t NurCRC16(uint16_t crc, uint8_t *buf, uint32_t len)
 
 static uint8_t packetHandlerState = STATE_IDLE;
 
-int NurApiHandlePacketData(struct NUR_API_HANDLE *hNurApi, uint32_t bytesToProcess)
+int NurApiHandlePacketData(struct NUR_API_HANDLE *hNurApi, uint32_t *bytesToProcess)
 {
 	uint8_t *trBuf = hNurApi->TxBuffer;
 
-	while (bytesToProcess-- > 0)
+	while ((*bytesToProcess)-- > 0)
 	{
 		hNurApi->RxBuffer[hNurApi->RxBufferUsed++] = *trBuf++;
 
@@ -390,13 +390,14 @@ int NURAPICONV NurApiSetupPacket(struct NUR_API_HANDLE *hNurApi, uint8_t cmd, ui
 int NURAPICONV NurApiXchPacket(struct NUR_API_HANDLE *hNurApi, uint8_t cmd, uint16_t payloadLen, int timeout)
 {
 	int error;
-	uint32_t bytesOutput = 0;
+    uint32_t bytesRead = 0;
 	int packetState = STATE_IDLE;
 	uint16_t packetLen;
 	//uint8_t tmpRxBuf[32];
 
 	if (cmd != 0)
 	{
+	    uint32_t bytesOutput = 0;
 		error = NurApiSetupPacket(hNurApi, cmd, payloadLen, 0, &packetLen);
 		if (error != NUR_SUCCESS)
 			return error;
@@ -409,29 +410,33 @@ int NURAPICONV NurApiXchPacket(struct NUR_API_HANDLE *hNurApi, uint8_t cmd, uint
 	}
 
 WAITMORE:
-	//nurMemset(hNurApi->TxBuffer, 0, hNurApi->TxBufferLen);
-
-	packetHandlerState = STATE_IDLE;
-	packetState = STATE_IDLE;
-	hNurApi->RxBufferUsed = 0;
+    if (bytesRead == 0) {
+        packetHandlerState = STATE_IDLE;
+        packetState = STATE_IDLE;
+        hNurApi->RxBufferUsed = 0;
+    }
 
 	// Wait and read response from module
 	// NurApiHandlePacketData() function handles fragmented packet validation
 	while (timeout-- > 0)
 	{
 		// Read data
-		bytesOutput = 0;
-		error = hNurApi->TransportReadDataFunction(hNurApi, hNurApi->TxBuffer, hNurApi->TxBufferLen, &bytesOutput);
-		if (error != NUR_SUCCESS && error != NUR_ERROR_TR_TIMEOUT) {
-			// Transport error
-			return error;
-		}
+	    if (bytesRead == 0)
+	    {
+            error = hNurApi->TransportReadDataFunction(hNurApi, hNurApi->TxBuffer, hNurApi->TxBufferLen, &bytesRead);
+            if (error != NUR_SUCCESS && error != NUR_ERROR_TR_TIMEOUT) {
+                // Transport error
+                return error;
+            }
+	    } else {
+	        // Buffer has still some unprocessed data
+	    }
 
-		if (bytesOutput > 0)
+		if (bytesRead > 0)
 		{
 			// Handle incoming data.
-			// NOTE: Data may come in pieces.
-			packetState = NurApiHandlePacketData(hNurApi, bytesOutput);
+			// NOTE: Data may come in pieces and received buffer may contain unsolicited messages
+			packetState = NurApiHandlePacketData(hNurApi, &bytesRead);
 			if (packetState == STATE_PACKETREADY)
 			{
 				// We're done
@@ -446,8 +451,19 @@ WAITMORE:
 		return NUR_ERROR_TR_TIMEOUT;
 	}
 
+	if (RxHeaderPtr->flags & PACKET_FLAG_ACK)
+    {
+	    // ACK requested by NUR
+	    uint32_t bytesOutput = 0;
+        uint8_t ackBuf[] = { 0xA5, 0x03, 0x00, 0x00, 0x00, 0x59, 0x02, 0xB2, 0xC1 };
+        error = hNurApi->TransportWriteDataFunction(hNurApi, ackBuf, sizeof(ackBuf), &bytesOutput);
+        if (error != NUR_SUCCESS)
+            return error;
+    }
+
 	if (RxHeaderPtr->flags & PACKET_FLAG_UNSOL)
 	{
+	    // Unsolicited message received
 		if (hNurApi->UnsolEventHandler)
 		{
 			hNurApi->UnsolEventHandler(hNurApi);
@@ -456,18 +472,19 @@ WAITMORE:
 
 	if (cmd == 0)
 	{
-		// Waiting for event's only..
+		// Waiting for unsolicited event's only, return now
 		return 0;
 	}
 
 	// Make sure packet is meant for us
 	if (hNurApi->resp->cmd != cmd)
 	{
-		// Hmm. Response was not meant for this cmd.
 		if (!(RxHeaderPtr->flags & PACKET_FLAG_UNSOL)) {
+	        // Packet is not unsolicited message and response is not meant for this cmd.
 			// TODO: Pass to unexpected packet handler
 			//printf("unexpected packet handler %d %d; to %d\n", hNurApi->resp->cmd, cmd, timeout);
 		}
+		// Wait for more (or process remaining)
 		goto WAITMORE;
 	}
 

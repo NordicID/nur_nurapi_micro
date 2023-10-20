@@ -237,6 +237,7 @@ enum {
 
 #define PACKET_FLAG_UNSOL  (1<<0)
 #define PACKET_FLAG_IRDATA (1<<1)
+#define PACKET_FLAG_ACK    (1<<2)
 
 #define NUR_MAX_SENSORS		2
 #define NUR_SZ_SENSOR_CONF  2
