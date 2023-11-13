@@ -867,6 +867,11 @@ int NURAPICONV NurApiClearTags(struct NUR_API_HANDLE *hNurApi)
 	return NurApiXchPacket(hNurApi, NUR_CMD_CLEARIDBUF, 0, DEF_TIMEOUT);
 }
 
+int NURAPICONV NurApiStopContinuous(struct NUR_API_HANDLE *hNurApi)
+{
+	return NurApiXchPacket(hNurApi, NUR_CMD_STOPALLCONT, 1, DEF_TIMEOUT);
+}
+
 int NURAPICONV NurApiSetCustomHoptableEx(struct NUR_API_HANDLE *hNurApi,
 										struct NUR_CUSTOMHOP_PARAMS_EX *params)
 {

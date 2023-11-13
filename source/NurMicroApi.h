@@ -867,6 +867,7 @@ NUR_API int NURAPICONV NurApiSetInventoryReadConfig(struct NUR_API_HANDLE *hNurA
 NUR_API int NURAPICONV NurApiFetchTags(struct NUR_API_HANDLE *hNurApi, int32_t includeMeta, int32_t clearModuleTags, int *tagsReceived, pFetchTagsFunction tagFunc);
 NUR_API int NURAPICONV NurApiFetchTagAt(struct NUR_API_HANDLE *hNurApi, int32_t includeMeta, int tagNum, pFetchTagsFunction tagFunc);
 NUR_API int NURAPICONV NurApiClearTags(struct NUR_API_HANDLE *hNurApi);
+NUR_API int NURAPICONV NurApiStopContinuous(struct NUR_API_HANDLE *hNurApi);
 
 /** @fn int NurApiSetCustomHoptableEx(struct NUR_API_HANDLE *hNurApi, struct NUR_CUSTOMHOP_PARAMS_EX *params)
  *
