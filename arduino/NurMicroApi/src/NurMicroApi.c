@@ -1101,7 +1101,7 @@ static void WriteCommonSingulationBlock(struct NUR_SINGULATED_CMD_PARAMS *params
 #ifdef CONFIG_GENERIC_READ
 int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi,
 							 struct NUR_CMD_READ_PARAMS *params,
-							 uint8_t *rdBuffer)
+							 uint8_t *rdBuffer, uint16_t *rdWords )
 {
 	int error;
 	uint8_t *payloadBuffer = TxPayloadDataPtr;
@@ -1138,6 +1138,9 @@ int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi,
 
 	if (error == NUR_SUCCESS) {
 		nurMemcpy(rdBuffer, hNurApi->resp->rawdata, RxPayloadLen);
+		if (rdWords != NULL) {
+			*rdWords = RxPayloadLen;
+		}
 	}
 
 	return error;

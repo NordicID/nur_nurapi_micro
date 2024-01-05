@@ -940,7 +940,7 @@ NUR_API int NURAPICONV NurApiSetConstantChannelIndex(struct NUR_API_HANDLE *hNur
 int NURAPICONV NurApiTraceTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_TRACETAG_PARAMS *params);
 
 #ifdef CONFIG_GENERIC_READ
-NUR_API int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_READ_PARAMS *params,  uint8_t *rdBuffer);
+NUR_API int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_READ_PARAMS *params, uint8_t *rdBuffer, uint16_t *rdWords);
 #endif
 
 #ifdef CONFIG_GENERIC_WRITE
