@@ -1139,7 +1139,7 @@ int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi,
 	if (error == NUR_SUCCESS) {
 		nurMemcpy(rdBuffer, hNurApi->resp->rawdata, RxPayloadLen);
 		if (rdWords != NULL) {
-			*rdWords = RxPayloadLen;
+			*rdWords = RxPayloadLen / 2;
 		}
 	}
 
