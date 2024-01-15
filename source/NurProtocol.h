@@ -371,8 +371,8 @@ struct NUR_CMD_INVENTORYEX_PARAMS
 
 struct NUR_CMD_IRCONFIG_PARAMS
 {
-  uint8_t active;
-  uint8_t type;
+  uint8_t active;	// On / off control; 1 means on.
+  uint8_t type;		// Type for inventory + read: 0 = EPC + data, 1 = data only (returned in the EPC field).
   uint8_t bank;
   uint32_t wAddress;
   uint8_t wLength;
