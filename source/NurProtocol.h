@@ -935,6 +935,14 @@ struct NUR_CMD_GETREFPOWEREX_RESP
 	uint32_t freqKhz;
 } NUR_PACKED;
 
+struct NUR_CMD_PERMALOCK_RD_RESP
+{
+	uint8_t bank;			/* From bank */
+	uint32_t addr;			/* Starting from addr */
+	uint8_t nMask;			/* Number of mask words */
+	uint16_t wResp[255];	/* Max range is 1...255, BYTE value. */
+};
+
 /**
  * NUR_NOTIFICATION_HOPEVENT data.
  */
@@ -1003,6 +1011,7 @@ struct NUR_CMD_RESP
 		struct NUR_CMD_GETREFPOWEREX_RESP	getrefpowerex;
 		struct NUR_HOPEVENT_DATA			hopeventdata;
 		struct NUR_TUNEEVENT_DATA			tuneeventdata;
+		struct NUR_CMD_PERMALOCK_RD_RESP	permalock;
 
 		uint8_t rawdata[1];
 	};

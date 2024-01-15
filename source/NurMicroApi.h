@@ -950,6 +950,9 @@ NUR_API int NURAPICONV NurApiWriteEPCByEPC(struct NUR_API_HANDLE *hNurApi, uint3
 NUR_API int NURAPICONV NurApiWriteTagByEPC(struct NUR_API_HANDLE *hNurApi, uint32_t passwd, int32_t secured, uint8_t *epcBuffer, uint32_t epcBufferLen, uint8_t wrBank, uint32_t wrAddress, int wrByteCount, uint8_t *wrBuffer);
 NUR_API int NURAPICONV NurApiWriteSingulatedTag32(struct NUR_API_HANDLE *hNurApi, uint32_t passwd, int32_t secured, uint8_t sBank, uint32_t sAddress, int sMaskBitLength, uint8_t *sMask, uint8_t wrBank, uint32_t wrAddress, int wrByteCount, uint8_t *wrBuffer);
 NUR_API int NURAPICONV NurApiWriteTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_WRITE_PARAMS *params);
+NUR_API int NURAPICONV NurApiSetLockRaw(struct NUR_API_HANDLE* hNurApi, struct NUR_CMD_LOCK_PARAMS* params);
+NUR_API int NURAPICONV NurApiKillTag(struct NUR_API_HANDLE* hNurApi, struct NUR_CMD_KILL_PARAMS* params);
+NUR_API int NURAPICONV NurApiPermalock(struct NUR_API_HANDLE* hNurApi, struct NUR_CMD_PERMALOCK_PARAM* params);
 #endif
 
 int NURAPICONV NurApiScanSingle(struct NUR_API_HANDLE *hNurApi, uint16_t timeout);

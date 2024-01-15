@@ -249,8 +249,9 @@ int NurApiHandlePacketData(struct NUR_API_HANDLE *hNurApi, uint32_t *bytesToProc
 {
 	uint8_t *trBuf = hNurApi->TxBuffer;
 
-	while ((*bytesToProcess)-- > 0)
+	while ((*bytesToProcess) > 0)
 	{
+		(*bytesToProcess)--;
 		hNurApi->RxBuffer[hNurApi->RxBufferUsed++] = *trBuf++;
 
 		switch (packetHandlerState)
@@ -1297,6 +1298,68 @@ int NURAPICONV NurApiWriteTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_WRI
 	PacketBytes(payloadBuffer, wb->data, wb->bytestofollow - hdrSize, &payloadSize);
 
 	error = NurApiXchPacket(hNurApi, NUR_CMD_WRITE, payloadSize, DEF_LONG_TIMEOUT);
+	if (error == NUR_ERROR_G2_TAG_RESP)
+	{
+		error = TranslateTagError(hNurApi->resp->rawdata[0]);
+	}
+	LOGIFERROR(error);
+	return error;
+}
+
+int NURAPICONV NurApiSetLockRaw(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_LOCK_PARAMS *params)
+{
+	int error;
+	uint8_t* payloadBuffer = TxPayloadDataPtr;
+	uint16_t payloadSize = 0;
+	struct NUR_LOCKBLOCK *lb = &params->lb;
+
+	// Write "Common RW" block and "Singulation" block to payload buffer
+	WriteCommonSingulationBlock((struct NUR_SINGULATED_CMD_PARAMS*)params, payloadBuffer, &payloadSize);
+
+	// Lock block
+	lb->bytestofollow = 4;
+
+	PacketByte(payloadBuffer, lb->bytestofollow, &payloadSize);
+	PacketWord(payloadBuffer, lb->mask, &payloadSize);
+	PacketWord(payloadBuffer, lb->action, &payloadSize);
+
+	error = NurApiXchPacket(hNurApi, NUR_CMD_LOCK, payloadSize, DEF_LONG_TIMEOUT);
+	if (error == NUR_ERROR_G2_TAG_RESP)
+	{
+		error = TranslateTagError(hNurApi->resp->rawdata[0]);
+	}
+	LOGIFERROR(error);
+	return error;
+}
+
+int NURAPICONV NurApiKillTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_KILL_PARAMS *params)
+{
+	int error;
+	uint8_t* payloadBuffer = TxPayloadDataPtr;
+	uint16_t payloadSize = 0;
+
+	// Write "Common RW" block and "Singulation" block to payload buffer
+	WriteCommonSingulationBlock((struct NUR_SINGULATED_CMD_PARAMS*)params, payloadBuffer, &payloadSize);
+
+	error = NurApiXchPacket(hNurApi, NUR_CMD_KILL, payloadSize, DEF_LONG_TIMEOUT);
+	if (error == NUR_ERROR_G2_TAG_RESP)
+	{
+		error = TranslateTagError(hNurApi->resp->rawdata[0]);
+	}
+	LOGIFERROR(error);
+	return error;
+}
+
+int NURAPICONV NurApiPermalock(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_PERMALOCK_PARAM *params)
+{
+	int error;
+	uint8_t *payloadBuffer = TxPayloadDataPtr;
+	uint16_t payloadSize = 0;
+
+	// Write "Common RW" block and "Singulation" block to payload buffer
+	WriteCommonSingulationBlock((struct NUR_SINGULATED_CMD_PARAMS*)params, payloadBuffer, &payloadSize);
+
+	error = NurApiXchPacket(hNurApi, NUR_CMD_PERMALOCK, payloadSize, DEF_LONG_TIMEOUT);
 	if (error == NUR_ERROR_G2_TAG_RESP)
 	{
 		error = TranslateTagError(hNurApi->resp->rawdata[0]);
