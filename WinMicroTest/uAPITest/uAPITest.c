@@ -410,11 +410,32 @@ static void handle_setup_set_txlevel()
 int FetchTagsFunction(struct NUR_API_HANDLE *hNurApi, struct NUR_IDBUFFER_ENTRY *tag)
 {
 	int n;
+
+	int xpc_count;
+	uint16_t xpc1 = 0, xpc2 = 0;
+
+	xpc_count = NurApiParseTagXPC(tag, &xpc1, &xpc2);
+
 	printf("Antenna %d, RSSI = %d (%d%%) ", tag->antennaId+1, tag->rssi, tag->scaledRssi);
 	printf("EPC[%d]: ", tag->epcLen);
 
 	for (n=0; n<tag->epcLen; n++) {
 		printf("%02X", tag->epcData[n]);
+	}
+
+	if (tag->dataLen > 0) {
+		printf(", DATA[%d]: ", tag->dataLen);
+
+		for (n = 0; n < tag->dataLen; n++) {
+			printf("%02X", tag->epcData[tag->epcLen + n]);
+		}
+	}
+
+	if (xpc_count >= 1) {
+		printf(", XPC W1: 0x%04X", xpc1);
+	}
+	if (xpc_count >= 2) {
+		printf(", XPC W2: 0x%04X", xpc2);
 	}
 	printf("\n");
 
@@ -507,15 +528,27 @@ static void handle_inventoryex_epcmask(uint8_t *epcMask, int epcMaskByteLen)
 	wait_key();
 }
 
-static void handle_inventory()
+static void handle_inventory(uint8_t enable_inventory_read)
 {
 	int rc;
+	struct NUR_CMD_IRCONFIG_PARAMS ir_params;
 
 	if (!gConnected)
 		return;
 
 	cls();
 	printf("* Inventory *\n");
+
+	if (enable_inventory_read) {
+		// Setup and enable inventory read
+		printf(" * InventoryRead enabled; Read TID bank address 0, length 4 words *\n");
+		ir_params.active = 1;
+		ir_params.bank = NUR_BANK_TID;
+		ir_params.type = 0; // 0 = EPC + data
+		ir_params.wAddress = 0;
+		ir_params.wLength = 4;
+		NurApiSetInventoryReadConfig(hApi, &ir_params);
+	}
 
 	// Clear tag buffer
 	rc = NurApiClearTags(hApi);
@@ -549,6 +582,12 @@ static void handle_inventory()
 	else
 	{
 		printf("ClearTags error. Code = %d.\n", rc);
+	}
+
+	if (enable_inventory_read) {
+		// Disable inventory read
+		ir_params.active = 0;
+		NurApiSetInventoryReadConfig(hApi, &ir_params);
 	}
 
 	wait_key();
@@ -1145,6 +1184,7 @@ static void options()
 		printf("[7]\tInventoryEx select SGTIN-96 tags only\n");
 		printf("[8]\tTune antenna and enable Auto-Tune feature\n");
 		printf("[9]\tSet TX Level\n");
+		printf("[d]\tInventoryRead\n");
 		printf("[e]\tEnable/disable events\n");
 		printf("[r]\tGet Reflected Power\n");
 		printf("[s]\tSwitch device mode to '%c'\n", mode == 'A' ? 'B' : 'A');
@@ -1181,7 +1221,8 @@ static int32_t do_command()
 	case '3': handle_versions(1); break;
 	case '4': handle_readerinfo(); break;
 	case '5': handle_setup_get(); break;
-	case '6': handle_inventory(); break;
+	case '6': handle_inventory(0); break;
+	case 'd': handle_inventory(1); break;
 	case '7': {
 		uint8_t epcMask[] = { 0x30 }; // Select SGTIN-96 tags (EPC starting with "30")
 		handle_inventoryex_epcmask(epcMask, sizeof(epcMask));
