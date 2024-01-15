@@ -667,12 +667,12 @@ unsigned char GetBinVal(char ch)
 
 	if (ch >= '0' && ch <= '9')
             value = ch - '0';
-        else if (ch >= 'A' && ch <= 'F')
-            value = (ch - 'A' + 10);
-        else if (ch >= 'a' && ch <= 'f')
-            value = (ch - 'a' + 10);
+    else if (ch >= 'A' && ch <= 'F')
+        value = (ch - 'A' + 10);
+    else if (ch >= 'a' && ch <= 'f')
+        value = (ch - 'a' + 10);
 
-		return value;
+	return value;
 }
 
 int HexStringToBin(char* str,uint8_t* buf,int length)
@@ -729,6 +729,7 @@ static void handle_selectAntenna()
 	{
 		printf("GetModuleSetup error. Code = %d.\n", rc);
 		wait_key();
+		return;
 	}
 
 	printf("Enable/Disable Antenna # (1 - 16): ");
@@ -764,8 +765,8 @@ static void handle_selectAntenna()
 static void handle_writeEPC()
 {
 	int x=0;
-	char curepc[32];	//Current EPC as string
-	char newepc[32];	//New Epc to write as string
+	char curepc[32] = "";	//Current EPC as string
+	char newepc[32] = "";	//New Epc to write as string
 	uint8_t epcBuf[62];
 	uint8_t wrBuf[62];
 	int epcBufLen,wrBufLen;
@@ -822,8 +823,8 @@ INVALID_INPUT:
 static void handle_writeToUserMem()
 {
 	int x = 0;
-	char curepc[32];	//Current EPC as string
-	char newuser[32];	//Data to user mem to as string
+	char curepc[32] = "";	//Current EPC as string
+	char newuser[32] = "";	//Data to user mem to as string
 	uint8_t epcBuf[62];
 	uint8_t wrBuf[62];
 	int epcBufLen, wrBufLen;
@@ -880,11 +881,130 @@ INVALID_INPUT:
 	wait_key();
 }
 
+static void handle_kill_tag()
+{
+	int x = 0;
+	char curepc[32] = "";	//Current EPC as string
+	struct NUR_CMD_KILL_PARAMS params;
+	int epcBufLen;
+
+	cls();
+
+	printf("Enter EPC: ");
+	if (scanf("%s", &curepc) != 1) {
+		goto INVALID_INPUT;
+	}
+
+	if (strlen(curepc) == 0 || (strlen(curepc) % 2) != 0) {
+		printf("EPC must be pairs of two hex chars\n");
+		goto INVALID_INPUT;
+	}
+
+	printf("Enter kill password in dec: ");
+	if (scanf("%d", &params.passwd) != 1)
+	{
+		goto INVALID_INPUT;
+	}
+	params.flags = RW_SEC | RW_SBP;
+
+	params.sb.bank = NUR_BANK_EPC;
+	params.sb.address32 = 32;
+	//convert HEX string to byte array.
+
+	printf("Kill tag [%s] passwd %d\n", curepc, params.passwd);
+
+	epcBufLen = HexStringToBin(curepc, params.sb.maskdata, strlen(curepc));
+	params.sb.maskbitlen = epcBufLen * 8;
+
+	x = NurApiKillTag(hApi, &params);
+
+	if (x == NUR_SUCCESS)
+		printf("Kill success!\n");
+	else 
+		printf("Kill error = %d\n", x);
+
+	wait_key();
+	return;
+
+INVALID_INPUT:
+	printf("Invalid input\n");
+	wait_key();
+}
+
+static void handle_lock_tag()
+{
+	int x = 0;
+	char curepc[32] = "";	//Current EPC as string
+	struct NUR_CMD_LOCK_PARAMS params;
+	uint32_t mask = 0, action = 0;
+	int epcBufLen;
+
+	cls();
+
+	printf("Enter EPC: ");
+	if (scanf("%s", &curepc) != 1) {
+		goto INVALID_INPUT;
+	}
+
+	if (strlen(curepc) == 0 || (strlen(curepc) % 2) != 0) {
+		printf("EPC must be pairs of two hex chars\n");
+		goto INVALID_INPUT;
+	}
+
+	printf("Enter access password in dec: ");
+	if (scanf("%d", &params.passwd) != 1) {
+		goto INVALID_INPUT;
+	}
+
+	// For lock mask and action values, please see GS1 gen2 UHF standard section 6.3.2.12.3.5 Lock (mandatory)
+
+	printf("Enter lock mask in dec: ");
+	if (scanf("%d", &mask) != 1) {
+		goto INVALID_INPUT;
+	}
+
+	printf("Enter lock action in dec: ");
+	if (scanf("%d", &action) != 1) {
+		goto INVALID_INPUT;
+	}
+
+	params.lb.action = (uint16_t)action;
+	params.lb.mask = (uint16_t)mask;
+
+	params.flags = RW_SEC | RW_SBP;
+
+	params.sb.bank = NUR_BANK_EPC;
+	params.sb.address32 = 32;
+	//convert HEX string to byte array.
+
+	printf("Lock tag [%s] mask %d, action %d\n", curepc, mask, action);
+
+	epcBufLen = HexStringToBin(curepc, params.sb.maskdata, strlen(curepc));
+	params.sb.maskbitlen = epcBufLen * 8;
+
+	x = NurApiSetLockRaw(hApi, &params);
+
+	if (x == NUR_SUCCESS)
+		printf("Lock success!\n");
+	else
+		printf("Lock error = %d\n", x);
+
+	wait_key();
+	return;
+
+INVALID_INPUT:
+	printf("Invalid input\n");
+	wait_key();
+}
 
 /* Calculate a reflected power */
 static int CalcReflPower(int iPart, int qPart, int div) {
 	double dRfdBm;
 	double t;
+
+	if (div == 0) {
+		return iPart;
+	}
 
 	t = (double) ((iPart * iPart) + (qPart * qPart));
 	dRfdBm = sqrt(t);
@@ -1032,6 +1152,8 @@ static void options()
 		printf("[c]\tContinuous carrier\n");
 		printf("[w]\tWrite EPC\n");
 		printf("[p]\tWrite to USER mem\n");
+		printf("[k]\tKill tag\n");
+		printf("[l]\tLock tag\n");
 		printf("[a]\tSet antenna\n");
 
 	} else {
@@ -1075,6 +1197,8 @@ static int32_t do_command()
 	case 'w': handle_writeEPC(); break;
 	case 'p': handle_writeToUserMem(); break;
 	case 'a': handle_selectAntenna(); break;
+	case 'k': handle_kill_tag(); break;
+	case 'l': handle_lock_tag(); break;
 
 	default: break;
 	}
