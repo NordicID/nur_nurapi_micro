@@ -852,10 +852,8 @@ int NURAPICONV NurApiSetInventoryReadConfig(struct NUR_API_HANDLE *hNurApi,
 {
 	uint16_t payloadSize;
 	if (params->active) {
-		payloadSize = params ? sizeof(struct NUR_CMD_IRCONFIG_PARAMS) : 0;
-		if (payloadSize > 0) {
-			nurMemcpy(TxPayloadDataPtr, params, payloadSize);
-		}
+		payloadSize = sizeof(struct NUR_CMD_IRCONFIG_PARAMS);
+		nurMemcpy(TxPayloadDataPtr, params, payloadSize);
 	} else {
 		payloadSize = 1;
 		TxPayloadDataPtr[0] = params->active;
@@ -927,6 +925,37 @@ int NURAPICONV NurApiSetConstantChannelIndex(struct NUR_API_HANDLE *hNurApi, uin
 {
 	TxPayloadDataPtr[0] = (channelIdx & 0xFF);
 	return NurApiXchPacket(hNurApi, NUR_CMD_SETCHANNEL, 1, DEF_TIMEOUT);
+}
+
+int NURAPICONV NurApiParseTagXPC(struct NUR_IDBUFFER_ENTRY *entry, uint16_t* xpc_w1, uint16_t* xpc_w2)
+{
+	int xpc_count = 0;
+
+	// check the presence of the XPC_W1
+	if ((entry->pc & XPC_W1_MASK) != 0 && entry->epcLen >= 2)
+	{
+		// OK, there is an XPC, inspect it.
+		*xpc_w1 = entry->epcData[0];
+		*xpc_w1 <<= 8;
+		*xpc_w1 |= entry->epcData[1];
+
+		xpc_count++;
+		entry->epcData += 2;
+		entry->epcLen -= 2;
+
+		// check the presence of the XPC_W2 i.e. XEB != 0.
+		if ((*xpc_w1 & XPC_EXT_MASK) != 0 && entry->epcLen >= 2) {
+			*xpc_w2 = entry->epcData[0];
+			*xpc_w2 <<= 8;
+			*xpc_w2 |= entry->epcData[1];
+
+			xpc_count++;
+			entry->epcData += 2;
+			entry->epcLen -= 2;
+		}
+	}
+
+	return xpc_count;
 }
 
 #define SZ_META_PREPEND_IR    12

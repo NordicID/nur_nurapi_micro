@@ -123,6 +123,12 @@ extern "C" {
 /** Number of bands the antenna tuning uses. */
 #define NR_TUNEBANDS			6
 
+/** If PC-word masked with this value is nonzero, then the XPC is present.  */
+#define XPC_W1_MASK		0x0200
+
+/** If XPC_W1 masked with this value is nonzero, then the XPC_W2 is present.  */
+#define XPC_EXT_MASK	0x8000	/* XEB location is the MSB in the XPC_W1. */
+
 /** Receiver sensitivity "low" setting.  */
 #define NUR_RXSENS_LOW		1
 /** Receiver sensitivity "nominal" setting.  */
@@ -866,6 +872,8 @@ NUR_API int NURAPICONV NurApiSetInventoryReadConfig(struct NUR_API_HANDLE *hNurA
 
 NUR_API int NURAPICONV NurApiFetchTags(struct NUR_API_HANDLE *hNurApi, int32_t includeMeta, int32_t clearModuleTags, int *tagsReceived, pFetchTagsFunction tagFunc);
 NUR_API int NURAPICONV NurApiFetchTagAt(struct NUR_API_HANDLE *hNurApi, int32_t includeMeta, int tagNum, pFetchTagsFunction tagFunc);
+NUR_API int NURAPICONV NurApiParseTagXPC(struct NUR_IDBUFFER_ENTRY* entry, uint16_t* xpc_w1, uint16_t* xpc_w2);
+
 NUR_API int NURAPICONV NurApiClearTags(struct NUR_API_HANDLE *hNurApi);
 NUR_API int NURAPICONV NurApiStopContinuous(struct NUR_API_HANDLE *hNurApi);
 
