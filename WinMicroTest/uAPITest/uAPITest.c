@@ -20,6 +20,8 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 #include <math.h>
 #include "NurMicroApi.h"
 
+// #define PRINT_DIAG_UNSOL_EVENT
+
 int32_t open_serial(struct NUR_API_HANDLE *hApi, int number, uint32_t baudrate);
 void close_serial();
 
@@ -38,6 +40,8 @@ static struct NUR_API_HANDLE gApi =
 	NULL,	// TransportReadDataFunction
 	NULL,	// TransportWriteDataFunction
 	NULL,	// UnsolEventHandler;
+	NULL,	// UnexpectedCmdHandler;
+	NULL,	// IgnoredByteHandler;
 
 	NULL,	// uint8_t *TxBuffer;
 	0,		// uint32_t TxBufferLen;
@@ -52,18 +56,83 @@ static struct NUR_API_HANDLE gApi =
 
 static struct NUR_API_HANDLE *hApi = &gApi;
 
+void print_diag_report(struct NUR_DIAG_REPORT* report)
+{
+#define PRINT_MEMBER(x) printf(" ." #x " = %d (0x%x)\n", report->x, report->x)
+
+	printf("NUR_DIAG_REPORT\n");
+	PRINT_MEMBER(flags);        /**< Report flags. see enum NUR_DIAG_REPORT_FLAGS */
+	PRINT_MEMBER(uptime);       /**< Uptime in milliseconds */
+	PRINT_MEMBER(rfActiveTime); /**< RF on time in milliseconds */
+	PRINT_MEMBER(temperature);  /**< Temperature in celcius. 1000 if not supported */
+	PRINT_MEMBER(bytesIn);      /**< Number of bytes in to module */
+	PRINT_MEMBER(bytesOut);     /**< Number of bytes out from module */
+	PRINT_MEMBER(bytesIgnored); /**< Number of ignored (invalid) bytes */
+	PRINT_MEMBER(antennaErrors); /**< Number of bad antenna errors */
+	PRINT_MEMBER(hwErrors);     /**< Number of automatically recovered internal HW failures */
+	PRINT_MEMBER(invTags);      /**< Number of successfully inventoried tags */
+	PRINT_MEMBER(invColl);      /**< Number of collisions during inventory */
+	PRINT_MEMBER(readTags);     /**< Number of successfully read tag commands */
+	PRINT_MEMBER(readErrors);   /**< Number of failed read tag commands */
+	PRINT_MEMBER(writeTags);    /**< Number of successfully write tag commands */
+	PRINT_MEMBER(writeErrors);  /**< Number of failed write tag commands */
+	PRINT_MEMBER(errorConds);   /**< Number of temporary error conditions (over temp, low voltage) occured */
+	PRINT_MEMBER(setupErrs);    /**< Number of invalid setup errors */
+	PRINT_MEMBER(invalidCmds);  /**< Number of invalid (not supported) commands received */
+}
+
 // Handle unsol events
 void UnsolEventHandler(struct NUR_API_HANDLE *hNurApi)
 {
 	switch(hNurApi->resp->cmd)
 	{
+	case NUR_NOTIFY_DEBUGMSG:
+		{
+			char tmpStr[255];
+			uint32_t tmpStrCnt = 0;
+			for (uint32_t n = 0; n < hNurApi->respLen; n++)
+			{
+				char ch = hNurApi->resp->rawdata[n];
+				if (ch == '\r') {
+					continue;
+				}
+
+				if (ch == '\n' || tmpStrCnt == sizeof(tmpStr)) {
+					tmpStr[tmpStrCnt] = '\0';
+					puts(tmpStr);
+					tmpStrCnt = 0;
+				}
+
+				if (ch != '\n') {
+					tmpStr[tmpStrCnt++] = ch;
+				}
+			}
+			if (tmpStrCnt > 0) {
+				tmpStr[tmpStrCnt] = '\0';
+				puts(tmpStr);
+			}
+			break;
+		}
+
+#ifdef PRINT_DIAG_UNSOL_EVENT
+	case NUR_NOTIFY_DIAG:
+		{
+			if (hNurApi->respLen != sizeof(hNurApi->resp->diagreport)) {
+				printf("WARNING diagnostics notification report size diff; %d != %d", hNurApi->respLen, sizeof(hNurApi->resp->diagreport));
+			}
+			print_diag_report(&hNurApi->resp->diagreport);
+			break;
+		}
+#endif
+
 	case NUR_NOTIFY_HOPEVENT:
 		{
 			printf("NUR_NOTIFY_HOPEVENT: freqIdx=%d, freqKhz=%f\n",
 				hNurApi->resp->hopeventdata.freqIdx,
-				(double)hNurApi->resp->hopeventdata.freqKhz/1000);
+				(double)hNurApi->resp->hopeventdata.freqKhz / 1000);
 			break;
 		}
+
 	case NUR_NOTIFY_AUTOTUNE:
 		{
 			printf("NUR_NOTIFY_AUTOTUNE: antenna=%d, reflPower_dBm=%f\n",
@@ -1036,6 +1105,17 @@ INVALID_INPUT:
 	wait_key();
 }
 
+static void handle_get_diag_report()
+{
+	struct NUR_DIAG_REPORT report;
+	int error = NurApiDiagGetReport(hApi, NUR_DIAG_GETREPORT_NONE, &report, sizeof(report));
+	if (error == NUR_SUCCESS)
+		print_diag_report(&report);
+	else
+		printf("NurApiDiagGetReport error = %d\n", error);
+	wait_key();
+}
+
 /* Calculate a reflected power */
 static int CalcReflPower(int iPart, int qPart, int div) {
 	double dRfdBm;
@@ -1195,6 +1275,7 @@ static void options()
 		printf("[k]\tKill tag\n");
 		printf("[l]\tLock tag\n");
 		printf("[a]\tSet antenna\n");
+		printf("[x]\tGet diagnostics report\n");
 
 	} else {
 		printf("[1]\tConnect\n");
@@ -1240,6 +1321,7 @@ static int32_t do_command()
 	case 'a': handle_selectAntenna(); break;
 	case 'k': handle_kill_tag(); break;
 	case 'l': handle_lock_tag(); break;
+	case 'x': handle_get_diag_report(); break;
 
 	default: break;
 	}

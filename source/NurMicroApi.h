@@ -665,6 +665,42 @@ enum NUR_MODULETYPE
 	NUR_MODULETYPE_NUR05WL2 = 3
 };
 
+/**
+ * Flags for diagnostics configuration.
+ * @sa NurApiDiagGetConfig
+ * @sa NurApiDiagSetConfig
+ */
+enum NUR_DIAG_CFG_FLAGS
+{
+    NUR_DIAG_CFG_NOTIFY_NONE = 0,               /**< Never send diagnostics report notification */
+    NUR_DIAG_CFG_NOTIFY_PERIODIC = (1<<0),      /**< Send diagnostics report notification periodically. */
+    NUR_DIAG_CFG_NOTIFY_WARN = (1<<1),          /**< Send diagnostics report notification on warning/error. */
+    NUR_DIAG_CFG_FW_ERROR_LOG = (1<<2),         /**< Module sends error log messages. Messages are prefixed with "FW:". @sa NUR_NOTIFY_DEBUGMSG */
+    NUR_DIAG_CFG_FW_DEBUG_LOG = (1<<3),         /**< Module sends verbose debug log messages. Messages are prefixed with "FW:". @sa NUR_NOTIFY_DEBUGMSG */
+};
+
+/**
+ * Flags for NurApiDiagGetReport function.
+ * @sa NurApiDiagGetReport
+ */
+enum NUR_DIAG_GETREPORT_FLAGS
+{
+    NUR_DIAG_GETREPORT_NONE = 0,                /**< None */
+    NUR_DIAG_GETREPORT_RESET_STATS = (1<<0),    /**< Reset all diagnostics statistics to zero. */
+};
+
+/**
+ * Flags for diagnostics report. see struct NUR_DIAG_REPORT.
+ * @sa struct NUR_CMD_DIAG_CFG_PARAMS
+ * @sa NurApiDiagGetReport
+ */
+enum NUR_DIAG_REPORT_FLAGS
+{
+    NUR_DIAG_REPORT_PERIODIC = (1<<0),  /**< Set in NUR_CMD_DIAG_CFG_PARAMS.flags when module sends periodic report. */
+    NUR_DIAG_REPORT_TEMP_HIGH = (1<<1), /**< Set in NUR_CMD_DIAG_CFG_PARAMS.flags if module temperature is high. Host application SHOULD stop performing RF operations for a while. */
+    NUR_DIAG_REPORT_TEMP_OVER = (1<<2), /**< Set in NUR_CMD_DIAG_CFG_PARAMS.flags if module temperature is over limits. All RF operations will fail with error NUR_ERROR_OVER_TEMP in this stage. */
+    NUR_DIAG_REPORT_LOWVOLT = (1<<3),   /**< Set in NUR_CMD_DIAG_CFG_PARAMS.flags if low voltage is detected. All RF operations will fail with error NUR_ERROR_LOW_VOLTAGE in this stage. */
+};
 
 /**
  * NurApi error codes
@@ -816,6 +852,8 @@ struct NUR_API_HANDLE
 		Packet handler can call this funtion to pass events to an application.
 	*/
 	pUnsolEventHandler UnsolEventHandler;
+    pUnsolEventHandler UnexpectedCmdHandler;
+    pUnsolEventHandler IgnoredByteHandler;
 
 	uint8_t *TxBuffer;
 	uint32_t TxBufferLen;
@@ -992,6 +1030,10 @@ typedef int (*pProgramProgressFunction)(struct NUR_API_HANDLE *hNurApi, struct N
 int NURAPICONV NurApiProgramBuffer(struct NUR_API_HANDLE *hNurApi, pProgramProgressFunction prgFn, uint16_t startPage, uint8_t validateCmd, uint8_t *buffer, uint32_t bufferLen);
 int NURAPICONV NurApiProgramApp(struct NUR_API_HANDLE *hNurApi, pProgramProgressFunction prgFn, uint8_t *buffer, uint32_t bufferLen);
 int NURAPICONV NurApiProgramBootloader(struct NUR_API_HANDLE *hNurApi, pProgramProgressFunction prgFn, uint8_t *buffer, uint32_t bufferLen);
+
+int NURAPICONV NurApiDiagGetReport(struct NUR_API_HANDLE *hNurApi, uint32_t flags, struct NUR_DIAG_REPORT *report, uint32_t reportSize);
+int NURAPICONV NurApiDiagSetConfig(struct NUR_API_HANDLE *hNurApi, uint32_t flags, uint32_t interval);
+int NURAPICONV NurApiDiagGetConfig(struct NUR_API_HANDLE *hNurApi, uint32_t *flags, uint32_t *interval);
 
 #ifndef IMPLEMENT_CRC16
 extern uint16_t NurCRC16(uint16_t crc, uint8_t *buf, uint32_t len);

@@ -245,14 +245,13 @@ static uint16_t NurCRC16(uint16_t crc, uint8_t *buf, uint32_t len)
 
 static uint8_t packetHandlerState = STATE_IDLE;
 
-int NurApiHandlePacketData(struct NUR_API_HANDLE *hNurApi, uint32_t *bytesToProcess)
+int NurApiHandlePacketData(struct NUR_API_HANDLE *hNurApi, uint32_t *processPos, uint32_t *bytesToProcess)
 {
 	uint8_t *trBuf = hNurApi->TxBuffer;
 
-	while ((*bytesToProcess) > 0)
+	while ((*processPos) < (*bytesToProcess))
 	{
-		(*bytesToProcess)--;
-		hNurApi->RxBuffer[hNurApi->RxBufferUsed++] = *trBuf++;
+		hNurApi->RxBuffer[hNurApi->RxBufferUsed++] = trBuf[(*processPos)++];
 
 		switch (packetHandlerState)
 		{
@@ -264,7 +263,10 @@ int NurApiHandlePacketData(struct NUR_API_HANDLE *hNurApi, uint32_t *bytesToProc
 			}
 			else
 			{
-				// Invalid header, just ignore data
+				// Invalid header, pass data to IgnoredByteHandler and discard
+			    if (hNurApi->IgnoredByteHandler) {
+			        hNurApi->IgnoredByteHandler(hNurApi);
+			    }
 				hNurApi->RxBufferUsed = 0;
 			}
 			break;
@@ -391,6 +393,7 @@ int NURAPICONV NurApiSetupPacket(struct NUR_API_HANDLE *hNurApi, uint8_t cmd, ui
 int NURAPICONV NurApiXchPacket(struct NUR_API_HANDLE *hNurApi, uint8_t cmd, uint16_t payloadLen, int timeout)
 {
 	int error;
+    uint32_t processPos = 0;
     uint32_t bytesRead = 0;
 	int packetState = STATE_IDLE;
 	uint16_t packetLen;
@@ -411,7 +414,7 @@ int NURAPICONV NurApiXchPacket(struct NUR_API_HANDLE *hNurApi, uint8_t cmd, uint
 	}
 
 WAITMORE:
-    if (bytesRead == 0) {
+    if (processPos == bytesRead) {
         packetHandlerState = STATE_IDLE;
         packetState = STATE_IDLE;
         hNurApi->RxBufferUsed = 0;
@@ -422,9 +425,11 @@ WAITMORE:
 	while (timeout-- > 0)
 	{
 		// Read data
-	    if (bytesRead == 0)
+	    if (processPos == bytesRead)
 	    {
-            error = hNurApi->TransportReadDataFunction(hNurApi, hNurApi->TxBuffer, hNurApi->TxBufferLen, &bytesRead);
+	        // Buffer completely consumed or empty, read more
+			processPos = 0;
+			error = hNurApi->TransportReadDataFunction(hNurApi, hNurApi->TxBuffer, hNurApi->TxBufferLen, &bytesRead);
             if (error != NUR_SUCCESS && error != NUR_ERROR_TR_TIMEOUT) {
                 // Transport error
                 return error;
@@ -433,11 +438,11 @@ WAITMORE:
 	        // Buffer has still some unprocessed data
 	    }
 
-		if (bytesRead > 0)
+		if (processPos < bytesRead)
 		{
 			// Handle incoming data.
 			// NOTE: Data may come in pieces and received buffer may contain unsolicited messages
-			packetState = NurApiHandlePacketData(hNurApi, &bytesRead);
+			packetState = NurApiHandlePacketData(hNurApi, &processPos, &bytesRead);
 			if (packetState == STATE_PACKETREADY)
 			{
 				// We're done
@@ -480,10 +485,10 @@ WAITMORE:
 	// Make sure packet is meant for us
 	if (hNurApi->resp->cmd != cmd)
 	{
-		if (!(RxHeaderPtr->flags & PACKET_FLAG_UNSOL)) {
+		if (!(RxHeaderPtr->flags & PACKET_FLAG_UNSOL) && hNurApi->UnexpectedCmdHandler) {
 	        // Packet is not unsolicited message and response is not meant for this cmd.
-			// TODO: Pass to unexpected packet handler
-			//printf("unexpected packet handler %d %d; to %d\n", hNurApi->resp->cmd, cmd, timeout);
+			// Pass to unexpected packet handler
+		    hNurApi->UnexpectedCmdHandler(hNurApi);
 		}
 		// Wait for more (or process remaining)
 		goto WAITMORE;
@@ -506,6 +511,75 @@ int NURAPICONV NurApiWaitEvent(struct NUR_API_HANDLE *hNurApi, int timeout)
 int NURAPICONV NurApiGetVersions(struct NUR_API_HANDLE *hApi)
 {
 	return NurApiXchPacket(hApi, NUR_CMD_VERSIONEX, 0, DEF_TIMEOUT);
+}
+
+int NURAPICONV NurApiDiagGetConfig(struct NUR_API_HANDLE *hNurApi, uint32_t *flags, uint32_t *interval)
+{
+	int error;
+	struct NUR_CMD_DIAG_CFG_PARAMS *pResp;
+	uint16_t payloadLen = 0;
+	uint8_t *payloadBuffer = TxPayloadDataPtr;
+	
+	PacketByte(payloadBuffer, NUR_CMD_DIAG_CFG, &payloadLen);	
+	
+	error = NurApiXchPacket(hNurApi, NUR_CMD_DIAG, payloadLen, DEF_TIMEOUT);
+
+	if (error == NUR_SUCCESS) {
+		uint32_t len = hNurApi->respLen;
+		if (len >= sizeof(struct NUR_CMD_DIAG_CFG_PARAMS)) {
+			pResp = (struct NUR_CMD_DIAG_CFG_PARAMS *)hNurApi->resp->rawdata;
+			if (flags) {
+				*flags = pResp->flags;
+			}
+			if (interval) {
+				*interval = pResp->interval;
+			}
+		}
+		else {
+			error = NUR_ERROR_INVALID_LENGTH;
+		}
+	}
+
+	return error;
+}
+
+int NURAPICONV NurApiDiagSetConfig(struct NUR_API_HANDLE *hNurApi, uint32_t flags, uint32_t interval)
+{
+	int error;
+	uint16_t payloadLen = 0;
+	uint8_t *payloadBuffer = TxPayloadDataPtr;
+
+	PacketByte(payloadBuffer, NUR_CMD_DIAG_CFG, &payloadLen);	
+	PacketDword(payloadBuffer, GET_DWORD(flags), &payloadLen);
+	PacketDword(payloadBuffer, GET_DWORD(interval), &payloadLen);
+	
+	error = NurApiXchPacket(hNurApi, NUR_CMD_DIAG, payloadLen, DEF_TIMEOUT);
+	return error;
+}
+
+int NURAPICONV NurApiDiagGetReport(struct NUR_API_HANDLE *hNurApi, uint32_t flags, struct NUR_CMD_DIAG_REPORT_RESP *report, uint32_t reportSize)
+{
+	int error;
+	uint8_t *payloadBuffer = TxPayloadDataPtr;
+	struct NUR_CMD_DIAG_REPORT_RESP *pResp;
+	uint16_t payloadLen = 0;
+	
+	PacketByte(payloadBuffer, NUR_CMD_DIAG_GETREPORT, &payloadLen);	
+	PacketDword(payloadBuffer, GET_DWORD(flags), &payloadLen);
+
+	error = NurApiXchPacket(hNurApi, NUR_CMD_DIAG, payloadLen, DEF_TIMEOUT);
+	
+	if (error == NUR_SUCCESS) {
+		uint32_t len = hNurApi->respLen;
+		pResp = &hNurApi->resp->diagreport;
+		if (len > reportSize) {
+			//printf("NurApiDiagGetReport() WARN reportSize smaller than response %d < %d\n", reportSize, len);
+			len = reportSize;
+		}
+		nurMemcpy(report, pResp, len);
+	}
+
+	return error;
 }
 
 int NURAPICONV NurApiGetReaderInfo(struct NUR_API_HANDLE *hNurApi)

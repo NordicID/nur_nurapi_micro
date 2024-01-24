@@ -80,7 +80,15 @@ enum {
 	NUR_CMD_STORESETUP,
 	NUR_CMD_CUSTOMHOP,
 	NUR_CMD_CUSTOMHOP_EX,
+	NUR_CMD_DIAG,
 	NUR_CTL_LAST
+};
+
+/* NUR_CMD_DIAG sub commands */
+enum {
+    NUR_CMD_DIAG_GETREPORT = 1,
+    NUR_CMD_DIAG_CFG,
+    NUR_CMD_DIAG_LAST
 };
 
 /**
@@ -182,7 +190,7 @@ enum {
 	NUR_NOTIFY_GENERAL,
 	NUR_NOTIFY_AUTOTUNE,
 	NUR_NOTIFY_WLAN_SEARCH,
-	NUR_NOTIFY_AR_NOTIFY,
+	NUR_NOTIFY_DIAG,
 	NUR_NOTIFY_BLE_READER,
 	NUR_NOTIFY_LAST
 };
@@ -730,8 +738,58 @@ struct NUR_CMD_TUNECOMMANDPARAM
 	uint8_t code[PRODUCTION_TUNE_MAGICLEN];
 } NUR_PACKED;
 
+struct NUR_CMD_DIAG_CFG_PARAMS
+{
+    uint32_t flags;    // See enum NUR_DIAG_CFG_FLAGS
+    uint32_t interval; // Report interval in seconds
+} NUR_PACKED;
+
+struct NUR_CMD_DIAG_GETREPORT_PARAMS
+{
+    uint32_t flags;    // See enum NUR_DIAG_GETREPORT_FLAGS
+} NUR_PACKED;
+
+struct NUR_CMD_DIAG_PARAMS
+{
+    uint8_t subCmd; // One of NUR_CMD_DIAG sub commands
+    union {
+        struct NUR_CMD_DIAG_GETREPORT_PARAMS getReportParams;   // Sent only with NUR_CMD_DIAG_GETREPORT
+        struct NUR_CMD_DIAG_CFG_PARAMS cfgParams;               // Sent only with NUR_CMD_DIAG_CFG
+    } u;
+} NUR_PACKED;
+
+/**
+ * Diagnostics report data.
+ * @sa NurApiDiagGetReport
+ * @sa NurApiDiagGetConfig
+ * @sa NurApiDiagSetConfig
+ */
+struct NUR_DIAG_REPORT
+{
+    uint32_t flags;        /**< Report flags. see enum NUR_DIAG_REPORT_FLAGS */
+    uint32_t uptime;       /**< Uptime in milliseconds */
+    uint32_t rfActiveTime; /**< RF on time in milliseconds */
+    int   temperature;  /**< Temperature in celcius. 1000 if not supported */
+    uint32_t bytesIn;      /**< Number of bytes in to module */
+    uint32_t bytesOut;     /**< Number of bytes out from module */
+    uint32_t bytesIgnored; /**< Number of ignored (invalid) bytes */
+    uint32_t antennaErrors; /**< Number of bad antenna errors */
+    uint32_t hwErrors;     /**< Number of automatically recovered internal HW failures */
+    uint32_t invTags;      /**< Number of successfully inventoried tags */
+    uint32_t invColl;      /**< Number of collisions during inventory */
+    uint32_t readTags;     /**< Number of successfully read tag commands */
+    uint32_t readErrors;   /**< Number of failed read tag commands */
+    uint32_t writeTags;    /**< Number of successfully write tag commands */
+    uint32_t writeErrors;  /**< Number of failed write tag commands */
+    uint32_t errorConds;   /**< Number of temporary error conditions (over temp, low voltage) occured */
+    uint32_t setupErrs;    /**< Number of invalid setup errors */
+    uint32_t invalidCmds;  /**< Number of invalid (not supported) commands received */
+} NUR_PACKED;
+
 /////////////////////////////////////////////////////////////////////////////
 // RESPONSES
+
+#define NUR_CMD_DIAG_REPORT_RESP NUR_DIAG_REPORT
 
 struct NUR_TUNERESULT
 {
@@ -812,7 +870,6 @@ struct NUR_CMD_TRACETAG_RESP
 	uint8_t epcdata[NUR_MAX_EPC_LENGTH];
 	uint8_t epcLen; // NOTE: Does not come in response from module, calculated from packet size
 } NUR_PACKED;
-
 
 #define RINFO_NAME_LENGTH		16
 #define RINFO_SERIAL_LEN		RINFO_NAME_LENGTH
@@ -1012,6 +1069,7 @@ struct NUR_CMD_RESP
 		struct NUR_HOPEVENT_DATA			hopeventdata;
 		struct NUR_TUNEEVENT_DATA			tuneeventdata;
 		struct NUR_CMD_PERMALOCK_RD_RESP	permalock;
+		struct NUR_CMD_DIAG_REPORT_RESP     diagreport;
 
 		uint8_t rawdata[1];
 	};
