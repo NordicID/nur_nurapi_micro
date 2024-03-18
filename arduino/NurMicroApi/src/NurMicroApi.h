@@ -411,7 +411,20 @@ enum NUR_ANTENNAMASK
 };
 
 /**
- * NUR_AUTOPERIOD defines hot the periodic auto-inventory is configured.
+ * NUR_RF_PROFILE defines the modulation used for RF communication.
+ */
+enum NUR_RF_PROFILE
+{
+	NUR_RF_PROFILE_ROBUST = 0,
+	NUR_RF_PROFILE_NOMINAL,
+	NUR_RF_PROFILE_HIGHSPEED,
+	NUR_RF_PROFILE_HIGHSPEED_2,
+	NUR_RF_PROFILE_FAST,
+	NUR_RF_PROFILE_LAST
+};
+
+/**
+ * NUR_AUTOPERIOD defines how the periodic auto-inventory is configured.
  */
 enum NUR_AUTOPERIOD
 {
