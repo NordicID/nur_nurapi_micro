@@ -450,6 +450,12 @@ struct NUR_PERMALOCKBLOCK
 	uint16_t wMask[255];
 } NUR_PACKED;
 
+struct NUR_ANTENNA_MAPPING
+{
+	int antennaId;
+	char name[NUR_MAX_MAPPINGLEN + 1];
+};
+
 struct NUR_SINGULATED_CMD_PARAMS
 {
 	uint8_t flags;
@@ -998,6 +1004,13 @@ struct NUR_CMD_PERMALOCK_RD_RESP
 	uint32_t addr;			/* Starting from addr */
 	uint8_t nMask;			/* Number of mask words */
 	uint16_t wResp[255];	/* Max range is 1...255, BYTE value. */
+};
+
+struct NUR_ANTMAP_RESP
+{
+	uint8_t antennaId;
+	uint8_t nameLen;
+	char name[1];
 };
 
 /**

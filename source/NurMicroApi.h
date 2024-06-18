@@ -93,6 +93,9 @@ extern "C" {
 /** Maximum length of the EPC enumeration response's TID content. */
 #define MAX_EE_TIDLEN			16
 
+/** Maximum length of antenna mapping's name. */
+#define NUR_MAX_MAPPINGLEN		16
+
 /** Maximum length of select mask in bytes. */
 #define NUR_MAX_SELMASK			(62)
 
@@ -1022,6 +1025,8 @@ int NURAPICONV NurApiSetGPIOConfig(struct NUR_API_HANDLE *hNurApi, struct NUR_CM
 int NURAPICONV NurApiGetGPIOConfig(struct NUR_API_HANDLE *hNurApi);
 int NURAPICONV NurApiSetGPIOStatus(struct NUR_API_HANDLE *hNurApi, int gpio, int32_t state);
 int NURAPICONV NurApiGetGPIOStatus(struct NUR_API_HANDLE *hNurApi, int gpio);
+
+int NURAPICONV NurApiGetAntennaMap(struct NUR_API_HANDLE *hNurApi, struct NUR_ANTENNA_MAPPING *antennaMap, uint8_t *nrMappings, uint8_t maxnMappings);
 
 int NURAPICONV NurApiGetMode(struct NUR_API_HANDLE *hNurApi, char *mode);
 int NURAPICONV NurApiModuleRestart(struct NUR_API_HANDLE *hNurApi);

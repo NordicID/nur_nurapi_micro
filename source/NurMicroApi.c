@@ -519,9 +519,9 @@ int NURAPICONV NurApiDiagGetConfig(struct NUR_API_HANDLE *hNurApi, uint32_t *fla
 	struct NUR_CMD_DIAG_CFG_PARAMS *pResp;
 	uint16_t payloadLen = 0;
 	uint8_t *payloadBuffer = TxPayloadDataPtr;
-	
-	PacketByte(payloadBuffer, NUR_CMD_DIAG_CFG, &payloadLen);	
-	
+
+	PacketByte(payloadBuffer, NUR_CMD_DIAG_CFG, &payloadLen);
+
 	error = NurApiXchPacket(hNurApi, NUR_CMD_DIAG, payloadLen, DEF_TIMEOUT);
 
 	if (error == NUR_SUCCESS) {
@@ -549,10 +549,10 @@ int NURAPICONV NurApiDiagSetConfig(struct NUR_API_HANDLE *hNurApi, uint32_t flag
 	uint16_t payloadLen = 0;
 	uint8_t *payloadBuffer = TxPayloadDataPtr;
 
-	PacketByte(payloadBuffer, NUR_CMD_DIAG_CFG, &payloadLen);	
+	PacketByte(payloadBuffer, NUR_CMD_DIAG_CFG, &payloadLen);
 	PacketDword(payloadBuffer, GET_DWORD(flags), &payloadLen);
 	PacketDword(payloadBuffer, GET_DWORD(interval), &payloadLen);
-	
+
 	error = NurApiXchPacket(hNurApi, NUR_CMD_DIAG, payloadLen, DEF_TIMEOUT);
 	return error;
 }
@@ -563,12 +563,12 @@ int NURAPICONV NurApiDiagGetReport(struct NUR_API_HANDLE *hNurApi, uint32_t flag
 	uint8_t *payloadBuffer = TxPayloadDataPtr;
 	struct NUR_CMD_DIAG_REPORT_RESP *pResp;
 	uint16_t payloadLen = 0;
-	
-	PacketByte(payloadBuffer, NUR_CMD_DIAG_GETREPORT, &payloadLen);	
+
+	PacketByte(payloadBuffer, NUR_CMD_DIAG_GETREPORT, &payloadLen);
 	PacketDword(payloadBuffer, GET_DWORD(flags), &payloadLen);
 
 	error = NurApiXchPacket(hNurApi, NUR_CMD_DIAG, payloadLen, DEF_TIMEOUT);
-	
+
 	if (error == NUR_SUCCESS) {
 		uint32_t len = hNurApi->respLen;
 		pResp = &hNurApi->resp->diagreport;
@@ -1579,6 +1579,45 @@ int NURAPICONV NurApiEnterBoot(struct NUR_API_HANDLE *hNurApi)
 int NURAPICONV NurApiModuleRestart(struct NUR_API_HANDLE *hNurApi)
 {
 	return NurApiXchPacket(hNurApi, NUR_CMD_RESTART, 0, DEF_TIMEOUT);
+}
+
+int NURAPICONV NurApiGetAntennaMap(struct NUR_API_HANDLE *hNurApi, struct NUR_ANTENNA_MAPPING *antennaMap, uint8_t *nrMappings, uint8_t maxnMappings)
+{
+	int error;
+	uint8_t *ptData, antCount;
+	struct NUR_ANTMAP_RESP *pMapResp;
+
+	error = NurApiXchPacket(hNurApi, NUR_CMD_ANTENNAMAP, 0, DEF_TIMEOUT);
+	if (error == NUR_NO_ERROR) {
+		ptData = hNurApi->resp->rawdata;
+		antCount = *(ptData++);
+
+		if (hNurApi->respLen < 6 || antCount < 1 || antCount > NUR_MAX_ANTENNAS_EX) {
+			return NUR_ERROR_INVALID_LENGTH;
+		}
+		if (maxnMappings < antCount) {
+			antCount = maxnMappings;
+		}
+
+		pMapResp = (struct NUR_ANTMAP_RESP *)(ptData);
+		for (uint8_t ant_i = 0; ant_i < antCount; ++ant_i) {
+			if ( pMapResp->nameLen > NUR_MAX_MAPPINGLEN ) {
+				return NUR_ERROR_INVALID_LENGTH;
+			}
+
+			antennaMap[ant_i].antennaId = pMapResp->antennaId;
+			nurMemset( antennaMap[ant_i].name, 0, NUR_MAX_MAPPINGLEN + 1 );
+			nurMemcpy( antennaMap[ant_i].name, pMapResp->name, pMapResp->nameLen );
+
+			ptData += 2 + pMapResp->nameLen;
+			pMapResp = (struct NUR_ANTMAP_RESP *)ptData;
+		}
+
+		*nrMappings = antCount;
+	}
+
+	LOGIFERROR(error);
+	return error;
 }
 
 int NURAPICONV NurApiGetMode(struct NUR_API_HANDLE *hNurApi, char *mode)
