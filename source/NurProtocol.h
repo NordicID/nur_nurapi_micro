@@ -454,7 +454,7 @@ struct NUR_ANTENNA_MAPPING
 {
 	int antennaId;
 	char name[NUR_MAX_MAPPINGLEN + 1];
-};
+} NUR_PACKED;
 
 struct NUR_SINGULATED_CMD_PARAMS
 {
@@ -626,7 +626,7 @@ struct NUR_AUTOTUNE_SETUP
 {
 	uint8_t mode;			/**< Autotune mode setting, bits: @sa AUTOTUNE_MODE_ENABLE, AUTOTUNE_MODE_THRESHOLD_ENABLE. */
 	int8_t threshold_dBm;	/**< Low level threshold in dBm. Do autotune if current reflected power worse than 'threshold_dBm' */
-};
+} NUR_PACKED;
 
 struct NUR_CMD_LOADSETUP_PARAMS
 {
@@ -1004,14 +1004,14 @@ struct NUR_CMD_PERMALOCK_RD_RESP
 	uint32_t addr;			/* Starting from addr */
 	uint8_t nMask;			/* Number of mask words */
 	uint16_t wResp[255];	/* Max range is 1...255, BYTE value. */
-};
+} NUR_PACKED;
 
 struct NUR_ANTMAP_RESP
 {
 	uint8_t antennaId;
 	uint8_t nameLen;
 	char name[1];
-};
+} NUR_PACKED;
 
 /**
  * NUR_NOTIFICATION_HOPEVENT data.
