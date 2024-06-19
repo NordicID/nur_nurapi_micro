@@ -245,13 +245,13 @@ static uint16_t NurCRC16(uint16_t crc, uint8_t *buf, uint32_t len)
 
 static uint8_t packetHandlerState = STATE_IDLE;
 
-int NurApiHandlePacketData(struct NUR_API_HANDLE *hNurApi, uint32_t bytesToProcess)
+int NurApiHandlePacketData(struct NUR_API_HANDLE *hNurApi, uint32_t *processPos, uint32_t *bytesToProcess)
 {
 	uint8_t *trBuf = hNurApi->TxBuffer;
 
-	while (bytesToProcess-- > 0)
+	while ((*processPos) < (*bytesToProcess))
 	{
-		hNurApi->RxBuffer[hNurApi->RxBufferUsed++] = *trBuf++;
+		hNurApi->RxBuffer[hNurApi->RxBufferUsed++] = trBuf[(*processPos)++];
 
 		switch (packetHandlerState)
 		{
@@ -263,7 +263,10 @@ int NurApiHandlePacketData(struct NUR_API_HANDLE *hNurApi, uint32_t bytesToProce
 			}
 			else
 			{
-				// Invalid header, just ignore data
+				// Invalid header, pass data to IgnoredByteHandler and discard
+			    if (hNurApi->IgnoredByteHandler) {
+			        hNurApi->IgnoredByteHandler(hNurApi);
+			    }
 				hNurApi->RxBufferUsed = 0;
 			}
 			break;
@@ -390,13 +393,15 @@ int NURAPICONV NurApiSetupPacket(struct NUR_API_HANDLE *hNurApi, uint8_t cmd, ui
 int NURAPICONV NurApiXchPacket(struct NUR_API_HANDLE *hNurApi, uint8_t cmd, uint16_t payloadLen, int timeout)
 {
 	int error;
-	uint32_t bytesOutput = 0;
+    uint32_t processPos = 0;
+    uint32_t bytesRead = 0;
 	int packetState = STATE_IDLE;
 	uint16_t packetLen;
 	//uint8_t tmpRxBuf[32];
 
 	if (cmd != 0)
 	{
+	    uint32_t bytesOutput = 0;
 		error = NurApiSetupPacket(hNurApi, cmd, payloadLen, 0, &packetLen);
 		if (error != NUR_SUCCESS)
 			return error;
@@ -409,29 +414,35 @@ int NURAPICONV NurApiXchPacket(struct NUR_API_HANDLE *hNurApi, uint8_t cmd, uint
 	}
 
 WAITMORE:
-	//nurMemset(hNurApi->TxBuffer, 0, hNurApi->TxBufferLen);
-
-	packetHandlerState = STATE_IDLE;
-	packetState = STATE_IDLE;
-	hNurApi->RxBufferUsed = 0;
+    if (processPos == bytesRead) {
+        packetHandlerState = STATE_IDLE;
+        packetState = STATE_IDLE;
+        hNurApi->RxBufferUsed = 0;
+    }
 
 	// Wait and read response from module
 	// NurApiHandlePacketData() function handles fragmented packet validation
 	while (timeout-- > 0)
 	{
 		// Read data
-		bytesOutput = 0;
-		error = hNurApi->TransportReadDataFunction(hNurApi, hNurApi->TxBuffer, hNurApi->TxBufferLen, &bytesOutput);
-		if (error != NUR_SUCCESS && error != NUR_ERROR_TR_TIMEOUT) {
-			// Transport error
-			return error;
-		}
+	    if (processPos == bytesRead)
+	    {
+	        // Buffer completely consumed or empty, read more
+			processPos = 0;
+			error = hNurApi->TransportReadDataFunction(hNurApi, hNurApi->TxBuffer, hNurApi->TxBufferLen, &bytesRead);
+            if (error != NUR_SUCCESS && error != NUR_ERROR_TR_TIMEOUT) {
+                // Transport error
+                return error;
+            }
+	    } else {
+	        // Buffer has still some unprocessed data
+	    }
 
-		if (bytesOutput > 0)
+		if (processPos < bytesRead)
 		{
 			// Handle incoming data.
-			// NOTE: Data may come in pieces.
-			packetState = NurApiHandlePacketData(hNurApi, bytesOutput);
+			// NOTE: Data may come in pieces and received buffer may contain unsolicited messages
+			packetState = NurApiHandlePacketData(hNurApi, &processPos, &bytesRead);
 			if (packetState == STATE_PACKETREADY)
 			{
 				// We're done
@@ -446,8 +457,19 @@ WAITMORE:
 		return NUR_ERROR_TR_TIMEOUT;
 	}
 
+	if (RxHeaderPtr->flags & PACKET_FLAG_ACK)
+    {
+	    // ACK requested by NUR
+	    uint32_t bytesOutput = 0;
+        uint8_t ackBuf[] = { 0xA5, 0x03, 0x00, 0x00, 0x00, 0x59, 0x02, 0xB2, 0xC1 };
+        error = hNurApi->TransportWriteDataFunction(hNurApi, ackBuf, sizeof(ackBuf), &bytesOutput);
+        if (error != NUR_SUCCESS)
+            return error;
+    }
+
 	if (RxHeaderPtr->flags & PACKET_FLAG_UNSOL)
 	{
+	    // Unsolicited message received
 		if (hNurApi->UnsolEventHandler)
 		{
 			hNurApi->UnsolEventHandler(hNurApi);
@@ -456,18 +478,19 @@ WAITMORE:
 
 	if (cmd == 0)
 	{
-		// Waiting for event's only..
+		// Waiting for unsolicited event's only, return now
 		return 0;
 	}
 
 	// Make sure packet is meant for us
 	if (hNurApi->resp->cmd != cmd)
 	{
-		// Hmm. Response was not meant for this cmd.
-		if (!(RxHeaderPtr->flags & PACKET_FLAG_UNSOL)) {
-			// TODO: Pass to unexpected packet handler
-			//printf("unexpected packet handler %d %d; to %d\n", hNurApi->resp->cmd, cmd, timeout);
+		if (!(RxHeaderPtr->flags & PACKET_FLAG_UNSOL) && hNurApi->UnexpectedCmdHandler) {
+	        // Packet is not unsolicited message and response is not meant for this cmd.
+			// Pass to unexpected packet handler
+		    hNurApi->UnexpectedCmdHandler(hNurApi);
 		}
+		// Wait for more (or process remaining)
 		goto WAITMORE;
 	}
 
@@ -488,6 +511,75 @@ int NURAPICONV NurApiWaitEvent(struct NUR_API_HANDLE *hNurApi, int timeout)
 int NURAPICONV NurApiGetVersions(struct NUR_API_HANDLE *hApi)
 {
 	return NurApiXchPacket(hApi, NUR_CMD_VERSIONEX, 0, DEF_TIMEOUT);
+}
+
+int NURAPICONV NurApiDiagGetConfig(struct NUR_API_HANDLE *hNurApi, uint32_t *flags, uint32_t *interval)
+{
+	int error;
+	struct NUR_CMD_DIAG_CFG_PARAMS *pResp;
+	uint16_t payloadLen = 0;
+	uint8_t *payloadBuffer = TxPayloadDataPtr;
+
+	PacketByte(payloadBuffer, NUR_CMD_DIAG_CFG, &payloadLen);
+
+	error = NurApiXchPacket(hNurApi, NUR_CMD_DIAG, payloadLen, DEF_TIMEOUT);
+
+	if (error == NUR_SUCCESS) {
+		uint32_t len = hNurApi->respLen;
+		if (len >= sizeof(struct NUR_CMD_DIAG_CFG_PARAMS)) {
+			pResp = (struct NUR_CMD_DIAG_CFG_PARAMS *)hNurApi->resp->rawdata;
+			if (flags) {
+				*flags = pResp->flags;
+			}
+			if (interval) {
+				*interval = pResp->interval;
+			}
+		}
+		else {
+			error = NUR_ERROR_INVALID_LENGTH;
+		}
+	}
+
+	return error;
+}
+
+int NURAPICONV NurApiDiagSetConfig(struct NUR_API_HANDLE *hNurApi, uint32_t flags, uint32_t interval)
+{
+	int error;
+	uint16_t payloadLen = 0;
+	uint8_t *payloadBuffer = TxPayloadDataPtr;
+
+	PacketByte(payloadBuffer, NUR_CMD_DIAG_CFG, &payloadLen);
+	PacketDword(payloadBuffer, GET_DWORD(flags), &payloadLen);
+	PacketDword(payloadBuffer, GET_DWORD(interval), &payloadLen);
+
+	error = NurApiXchPacket(hNurApi, NUR_CMD_DIAG, payloadLen, DEF_TIMEOUT);
+	return error;
+}
+
+int NURAPICONV NurApiDiagGetReport(struct NUR_API_HANDLE *hNurApi, uint32_t flags, struct NUR_CMD_DIAG_REPORT_RESP *report, uint32_t reportSize)
+{
+	int error;
+	uint8_t *payloadBuffer = TxPayloadDataPtr;
+	struct NUR_CMD_DIAG_REPORT_RESP *pResp;
+	uint16_t payloadLen = 0;
+
+	PacketByte(payloadBuffer, NUR_CMD_DIAG_GETREPORT, &payloadLen);
+	PacketDword(payloadBuffer, GET_DWORD(flags), &payloadLen);
+
+	error = NurApiXchPacket(hNurApi, NUR_CMD_DIAG, payloadLen, DEF_TIMEOUT);
+
+	if (error == NUR_SUCCESS) {
+		uint32_t len = hNurApi->respLen;
+		pResp = &hNurApi->resp->diagreport;
+		if (len > reportSize) {
+			//printf("NurApiDiagGetReport() WARN reportSize smaller than response %d < %d\n", reportSize, len);
+			len = reportSize;
+		}
+		nurMemcpy(report, pResp, len);
+	}
+
+	return error;
 }
 
 int NURAPICONV NurApiGetReaderInfo(struct NUR_API_HANDLE *hNurApi)
@@ -834,10 +926,8 @@ int NURAPICONV NurApiSetInventoryReadConfig(struct NUR_API_HANDLE *hNurApi,
 {
 	uint16_t payloadSize;
 	if (params->active) {
-		payloadSize = params ? sizeof(struct NUR_CMD_IRCONFIG_PARAMS) : 0;
-		if (payloadSize > 0) {
-			nurMemcpy(TxPayloadDataPtr, params, payloadSize);
-		}
+		payloadSize = sizeof(struct NUR_CMD_IRCONFIG_PARAMS);
+		nurMemcpy(TxPayloadDataPtr, params, payloadSize);
 	} else {
 		payloadSize = 1;
 		TxPayloadDataPtr[0] = params->active;
@@ -848,6 +938,11 @@ int NURAPICONV NurApiSetInventoryReadConfig(struct NUR_API_HANDLE *hNurApi,
 int NURAPICONV NurApiClearTags(struct NUR_API_HANDLE *hNurApi)
 {
 	return NurApiXchPacket(hNurApi, NUR_CMD_CLEARIDBUF, 0, DEF_TIMEOUT);
+}
+
+int NURAPICONV NurApiStopContinuous(struct NUR_API_HANDLE *hNurApi)
+{
+	return NurApiXchPacket(hNurApi, NUR_CMD_STOPALLCONT, 1, DEF_TIMEOUT);
 }
 
 int NURAPICONV NurApiSetCustomHoptableEx(struct NUR_API_HANDLE *hNurApi,
@@ -904,6 +999,37 @@ int NURAPICONV NurApiSetConstantChannelIndex(struct NUR_API_HANDLE *hNurApi, uin
 {
 	TxPayloadDataPtr[0] = (channelIdx & 0xFF);
 	return NurApiXchPacket(hNurApi, NUR_CMD_SETCHANNEL, 1, DEF_TIMEOUT);
+}
+
+int NURAPICONV NurApiParseTagXPC(struct NUR_IDBUFFER_ENTRY *entry, uint16_t* xpc_w1, uint16_t* xpc_w2)
+{
+	int xpc_count = 0;
+
+	// check the presence of the XPC_W1
+	if ((entry->pc & XPC_W1_MASK) != 0 && entry->epcLen >= 2)
+	{
+		// OK, there is an XPC, inspect it.
+		*xpc_w1 = entry->epcData[0];
+		*xpc_w1 <<= 8;
+		*xpc_w1 |= entry->epcData[1];
+
+		xpc_count++;
+		entry->epcData += 2;
+		entry->epcLen -= 2;
+
+		// check the presence of the XPC_W2 i.e. XEB != 0.
+		if ((*xpc_w1 & XPC_EXT_MASK) != 0 && entry->epcLen >= 2) {
+			*xpc_w2 = entry->epcData[0];
+			*xpc_w2 <<= 8;
+			*xpc_w2 |= entry->epcData[1];
+
+			xpc_count++;
+			entry->epcData += 2;
+			entry->epcLen -= 2;
+		}
+	}
+
+	return xpc_count;
 }
 
 #define SZ_META_PREPEND_IR    12
@@ -1282,6 +1408,68 @@ int NURAPICONV NurApiWriteTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_WRI
 	LOGIFERROR(error);
 	return error;
 }
+
+int NURAPICONV NurApiSetLockRaw(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_LOCK_PARAMS *params)
+{
+	int error;
+	uint8_t* payloadBuffer = TxPayloadDataPtr;
+	uint16_t payloadSize = 0;
+	struct NUR_LOCKBLOCK *lb = &params->lb;
+
+	// Write "Common RW" block and "Singulation" block to payload buffer
+	WriteCommonSingulationBlock((struct NUR_SINGULATED_CMD_PARAMS*)params, payloadBuffer, &payloadSize);
+
+	// Lock block
+	lb->bytestofollow = 4;
+
+	PacketByte(payloadBuffer, lb->bytestofollow, &payloadSize);
+	PacketWord(payloadBuffer, lb->mask, &payloadSize);
+	PacketWord(payloadBuffer, lb->action, &payloadSize);
+
+	error = NurApiXchPacket(hNurApi, NUR_CMD_LOCK, payloadSize, DEF_LONG_TIMEOUT);
+	if (error == NUR_ERROR_G2_TAG_RESP)
+	{
+		error = TranslateTagError(hNurApi->resp->rawdata[0]);
+	}
+	LOGIFERROR(error);
+	return error;
+}
+
+int NURAPICONV NurApiKillTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_KILL_PARAMS *params)
+{
+	int error;
+	uint8_t* payloadBuffer = TxPayloadDataPtr;
+	uint16_t payloadSize = 0;
+
+	// Write "Common RW" block and "Singulation" block to payload buffer
+	WriteCommonSingulationBlock((struct NUR_SINGULATED_CMD_PARAMS*)params, payloadBuffer, &payloadSize);
+
+	error = NurApiXchPacket(hNurApi, NUR_CMD_KILL, payloadSize, DEF_LONG_TIMEOUT);
+	if (error == NUR_ERROR_G2_TAG_RESP)
+	{
+		error = TranslateTagError(hNurApi->resp->rawdata[0]);
+	}
+	LOGIFERROR(error);
+	return error;
+}
+
+int NURAPICONV NurApiPermalock(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_PERMALOCK_PARAM *params)
+{
+	int error;
+	uint8_t *payloadBuffer = TxPayloadDataPtr;
+	uint16_t payloadSize = 0;
+
+	// Write "Common RW" block and "Singulation" block to payload buffer
+	WriteCommonSingulationBlock((struct NUR_SINGULATED_CMD_PARAMS*)params, payloadBuffer, &payloadSize);
+
+	error = NurApiXchPacket(hNurApi, NUR_CMD_PERMALOCK, payloadSize, DEF_LONG_TIMEOUT);
+	if (error == NUR_ERROR_G2_TAG_RESP)
+	{
+		error = TranslateTagError(hNurApi->resp->rawdata[0]);
+	}
+	LOGIFERROR(error);
+	return error;
+}
 #endif
 
 int NURAPICONV NurApiScanSingle(struct NUR_API_HANDLE *hNurApi, uint16_t timeout)
@@ -1391,6 +1579,45 @@ int NURAPICONV NurApiEnterBoot(struct NUR_API_HANDLE *hNurApi)
 int NURAPICONV NurApiModuleRestart(struct NUR_API_HANDLE *hNurApi)
 {
 	return NurApiXchPacket(hNurApi, NUR_CMD_RESTART, 0, DEF_TIMEOUT);
+}
+
+int NURAPICONV NurApiGetAntennaMap(struct NUR_API_HANDLE *hNurApi, struct NUR_ANTENNA_MAPPING *antennaMap, uint8_t *nrMappings, uint8_t maxnMappings)
+{
+	int error;
+	uint8_t *ptData, antCount;
+	struct NUR_ANTMAP_RESP *pMapResp;
+
+	error = NurApiXchPacket(hNurApi, NUR_CMD_ANTENNAMAP, 0, DEF_TIMEOUT);
+	if (error == NUR_NO_ERROR) {
+		ptData = hNurApi->resp->rawdata;
+		antCount = *(ptData++);
+
+		if (hNurApi->respLen < 6 || antCount < 1 || antCount > NUR_MAX_ANTENNAS_EX) {
+			return NUR_ERROR_INVALID_LENGTH;
+		}
+		if (maxnMappings < antCount) {
+			antCount = maxnMappings;
+		}
+
+		pMapResp = (struct NUR_ANTMAP_RESP *)(ptData);
+		for (uint8_t ant_i = 0; ant_i < antCount; ++ant_i) {
+			if ( pMapResp->nameLen > NUR_MAX_MAPPINGLEN ) {
+				return NUR_ERROR_INVALID_LENGTH;
+			}
+
+			antennaMap[ant_i].antennaId = pMapResp->antennaId;
+			nurMemset( antennaMap[ant_i].name, 0, NUR_MAX_MAPPINGLEN + 1 );
+			nurMemcpy( antennaMap[ant_i].name, pMapResp->name, pMapResp->nameLen );
+
+			ptData += 2 + pMapResp->nameLen;
+			pMapResp = (struct NUR_ANTMAP_RESP *)ptData;
+		}
+
+		*nrMappings = antCount;
+	}
+
+	LOGIFERROR(error);
+	return error;
 }
 
 int NURAPICONV NurApiGetMode(struct NUR_API_HANDLE *hNurApi, char *mode)

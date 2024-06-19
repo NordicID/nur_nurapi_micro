@@ -93,6 +93,9 @@ extern "C" {
 /** Maximum length of the EPC enumeration response's TID content. */
 #define MAX_EE_TIDLEN			16
 
+/** Maximum length of antenna mapping's name. */
+#define NUR_MAX_MAPPINGLEN		16
+
 /** Maximum length of select mask in bytes. */
 #define NUR_MAX_SELMASK			(62)
 
@@ -122,6 +125,12 @@ extern "C" {
 
 /** Number of bands the antenna tuning uses. */
 #define NR_TUNEBANDS			6
+
+/** If PC-word masked with this value is nonzero, then the XPC is present.  */
+#define XPC_W1_MASK		0x0200
+
+/** If XPC_W1 masked with this value is nonzero, then the XPC_W2 is present.  */
+#define XPC_EXT_MASK	0x8000	/* XEB location is the MSB in the XPC_W1. */
 
 /** Receiver sensitivity "low" setting.  */
 #define NUR_RXSENS_LOW		1
@@ -672,6 +681,42 @@ enum NUR_MODULETYPE
 	NUR_MODULETYPE_NUR05WL2 = 3
 };
 
+/**
+ * Flags for diagnostics configuration.
+ * @sa NurApiDiagGetConfig
+ * @sa NurApiDiagSetConfig
+ */
+enum NUR_DIAG_CFG_FLAGS
+{
+    NUR_DIAG_CFG_NOTIFY_NONE = 0,               /**< Never send diagnostics report notification */
+    NUR_DIAG_CFG_NOTIFY_PERIODIC = (1<<0),      /**< Send diagnostics report notification periodically. */
+    NUR_DIAG_CFG_NOTIFY_WARN = (1<<1),          /**< Send diagnostics report notification on warning/error. */
+    NUR_DIAG_CFG_FW_ERROR_LOG = (1<<2),         /**< Module sends error log messages. Messages are prefixed with "FW:". @sa NUR_NOTIFY_DEBUGMSG */
+    NUR_DIAG_CFG_FW_DEBUG_LOG = (1<<3),         /**< Module sends verbose debug log messages. Messages are prefixed with "FW:". @sa NUR_NOTIFY_DEBUGMSG */
+};
+
+/**
+ * Flags for NurApiDiagGetReport function.
+ * @sa NurApiDiagGetReport
+ */
+enum NUR_DIAG_GETREPORT_FLAGS
+{
+    NUR_DIAG_GETREPORT_NONE = 0,                /**< None */
+    NUR_DIAG_GETREPORT_RESET_STATS = (1<<0),    /**< Reset all diagnostics statistics to zero. */
+};
+
+/**
+ * Flags for diagnostics report. see struct NUR_DIAG_REPORT.
+ * @sa struct NUR_CMD_DIAG_CFG_PARAMS
+ * @sa NurApiDiagGetReport
+ */
+enum NUR_DIAG_REPORT_FLAGS
+{
+    NUR_DIAG_REPORT_PERIODIC = (1<<0),  /**< Set in NUR_CMD_DIAG_CFG_PARAMS.flags when module sends periodic report. */
+    NUR_DIAG_REPORT_TEMP_HIGH = (1<<1), /**< Set in NUR_CMD_DIAG_CFG_PARAMS.flags if module temperature is high. Host application SHOULD stop performing RF operations for a while. */
+    NUR_DIAG_REPORT_TEMP_OVER = (1<<2), /**< Set in NUR_CMD_DIAG_CFG_PARAMS.flags if module temperature is over limits. All RF operations will fail with error NUR_ERROR_OVER_TEMP in this stage. */
+    NUR_DIAG_REPORT_LOWVOLT = (1<<3),   /**< Set in NUR_CMD_DIAG_CFG_PARAMS.flags if low voltage is detected. All RF operations will fail with error NUR_ERROR_LOW_VOLTAGE in this stage. */
+};
 
 /**
  * NurApi error codes
@@ -823,6 +868,8 @@ struct NUR_API_HANDLE
 		Packet handler can call this funtion to pass events to an application.
 	*/
 	pUnsolEventHandler UnsolEventHandler;
+    pUnsolEventHandler UnexpectedCmdHandler;
+    pUnsolEventHandler IgnoredByteHandler;
 
 	uint8_t *TxBuffer;
 	uint32_t TxBufferLen;
@@ -879,7 +926,10 @@ NUR_API int NURAPICONV NurApiSetInventoryReadConfig(struct NUR_API_HANDLE *hNurA
 
 NUR_API int NURAPICONV NurApiFetchTags(struct NUR_API_HANDLE *hNurApi, int32_t includeMeta, int32_t clearModuleTags, int *tagsReceived, pFetchTagsFunction tagFunc);
 NUR_API int NURAPICONV NurApiFetchTagAt(struct NUR_API_HANDLE *hNurApi, int32_t includeMeta, int tagNum, pFetchTagsFunction tagFunc);
+NUR_API int NURAPICONV NurApiParseTagXPC(struct NUR_IDBUFFER_ENTRY* entry, uint16_t* xpc_w1, uint16_t* xpc_w2);
+
 NUR_API int NURAPICONV NurApiClearTags(struct NUR_API_HANDLE *hNurApi);
+NUR_API int NURAPICONV NurApiStopContinuous(struct NUR_API_HANDLE *hNurApi);
 
 /** @fn int NurApiSetCustomHoptableEx(struct NUR_API_HANDLE *hNurApi, struct NUR_CUSTOMHOP_PARAMS_EX *params)
  *
@@ -962,6 +1012,9 @@ NUR_API int NURAPICONV NurApiWriteEPCByEPC(struct NUR_API_HANDLE *hNurApi, uint3
 NUR_API int NURAPICONV NurApiWriteTagByEPC(struct NUR_API_HANDLE *hNurApi, uint32_t passwd, int32_t secured, uint8_t *epcBuffer, uint32_t epcBufferLen, uint8_t wrBank, uint32_t wrAddress, int wrByteCount, uint8_t *wrBuffer);
 NUR_API int NURAPICONV NurApiWriteSingulatedTag32(struct NUR_API_HANDLE *hNurApi, uint32_t passwd, int32_t secured, uint8_t sBank, uint32_t sAddress, int sMaskBitLength, uint8_t *sMask, uint8_t wrBank, uint32_t wrAddress, int wrByteCount, uint8_t *wrBuffer);
 NUR_API int NURAPICONV NurApiWriteTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_WRITE_PARAMS *params);
+NUR_API int NURAPICONV NurApiSetLockRaw(struct NUR_API_HANDLE* hNurApi, struct NUR_CMD_LOCK_PARAMS* params);
+NUR_API int NURAPICONV NurApiKillTag(struct NUR_API_HANDLE* hNurApi, struct NUR_CMD_KILL_PARAMS* params);
+NUR_API int NURAPICONV NurApiPermalock(struct NUR_API_HANDLE* hNurApi, struct NUR_CMD_PERMALOCK_PARAM* params);
 #endif
 
 int NURAPICONV NurApiScanSingle(struct NUR_API_HANDLE *hNurApi, uint16_t timeout);
@@ -972,6 +1025,8 @@ int NURAPICONV NurApiSetGPIOConfig(struct NUR_API_HANDLE *hNurApi, struct NUR_CM
 int NURAPICONV NurApiGetGPIOConfig(struct NUR_API_HANDLE *hNurApi);
 int NURAPICONV NurApiSetGPIOStatus(struct NUR_API_HANDLE *hNurApi, int gpio, int32_t state);
 int NURAPICONV NurApiGetGPIOStatus(struct NUR_API_HANDLE *hNurApi, int gpio);
+
+int NURAPICONV NurApiGetAntennaMap(struct NUR_API_HANDLE *hNurApi, struct NUR_ANTENNA_MAPPING *antennaMap, uint8_t *nrMappings, uint8_t maxnMappings);
 
 int NURAPICONV NurApiGetMode(struct NUR_API_HANDLE *hNurApi, char *mode);
 int NURAPICONV NurApiModuleRestart(struct NUR_API_HANDLE *hNurApi);
@@ -993,6 +1048,10 @@ typedef int (*pProgramProgressFunction)(struct NUR_API_HANDLE *hNurApi, struct N
 int NURAPICONV NurApiProgramBuffer(struct NUR_API_HANDLE *hNurApi, pProgramProgressFunction prgFn, uint16_t startPage, uint8_t validateCmd, uint8_t *buffer, uint32_t bufferLen);
 int NURAPICONV NurApiProgramApp(struct NUR_API_HANDLE *hNurApi, pProgramProgressFunction prgFn, uint8_t *buffer, uint32_t bufferLen);
 int NURAPICONV NurApiProgramBootloader(struct NUR_API_HANDLE *hNurApi, pProgramProgressFunction prgFn, uint8_t *buffer, uint32_t bufferLen);
+
+int NURAPICONV NurApiDiagGetReport(struct NUR_API_HANDLE *hNurApi, uint32_t flags, struct NUR_DIAG_REPORT *report, uint32_t reportSize);
+int NURAPICONV NurApiDiagSetConfig(struct NUR_API_HANDLE *hNurApi, uint32_t flags, uint32_t interval);
+int NURAPICONV NurApiDiagGetConfig(struct NUR_API_HANDLE *hNurApi, uint32_t *flags, uint32_t *interval);
 
 #ifndef IMPLEMENT_CRC16
 extern uint16_t NurCRC16(uint16_t crc, uint8_t *buf, uint32_t len);
