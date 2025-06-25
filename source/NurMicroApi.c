@@ -404,7 +404,7 @@ int NURAPICONV NurApiXchPacket(struct NUR_API_HANDLE *hNurApi, uint8_t cmd, uint
 	    uint32_t bytesOutput = 0;
 		error = NurApiSetupPacket(hNurApi, cmd, payloadLen, 0, &packetLen);
 		if (error != NUR_SUCCESS)
-			return error;
+			return error;		
 
 		// Write packet to module
 		// TODO: Handle fragmented write
@@ -418,6 +418,7 @@ WAITMORE:
         packetHandlerState = STATE_IDLE;
         packetState = STATE_IDLE;
         hNurApi->RxBufferUsed = 0;
+        processPos = bytesRead = 0;
     }
 
 	// Wait and read response from module
@@ -451,7 +452,7 @@ WAITMORE:
 		}
 	}
 
-	if (packetState != STATE_PACKETREADY)
+	if (packetState != STATE_PACKETREADY || timeout <= 0)
 	{
 		// Packet was not ready within timeout
 		return NUR_ERROR_TR_TIMEOUT;
