@@ -1228,7 +1228,7 @@ static void WriteCommonSingulationBlock(struct NUR_SINGULATED_CMD_PARAMS *params
 #ifdef CONFIG_GENERIC_READ
 int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi,
 							 struct NUR_CMD_READ_PARAMS *params,
-							 uint8_t *rdBuffer, uint16_t *rdWords )
+							 uint8_t *rdBuffer, uint16_t *rdWords)
 {
 	int error;
 	uint8_t *payloadBuffer = TxPayloadDataPtr;
@@ -1236,7 +1236,7 @@ int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi,
 	uint32_t rdByteCount = params->rb.wordcount * 2;
 	struct NUR_READBLOCK *rb = &params->rb;
 
-	if (rdByteCount < 2 || rdByteCount > 510 || ((rdByteCount &1) != 0)) {
+	if (rdByteCount > 510 || ((rdByteCount & 1) != 0)) {
 		RETLOGERROR(NUR_ERROR_INVALID_PARAMETER);
 	}
 
@@ -1264,7 +1264,8 @@ int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi,
 	LOGIFERROR(error);
 
 	if (error == NUR_SUCCESS) {
-		nurMemcpy(rdBuffer, hNurApi->resp->rawdata, RxPayloadLen);
+		if (rdBuffer)
+			nurMemcpy(rdBuffer, hNurApi->resp->rawdata, RxPayloadLen);
 		if (rdWords != NULL) {
 			*rdWords = RxPayloadLen / 2;
 		}
