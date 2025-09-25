@@ -876,41 +876,41 @@ unsigned char GetBinVal(char ch)
 	return value;
 }
 
-int HexStringToBin(char* str,uint8_t* buf,int length)
+int HexStringToBin(char* str, uint8_t* buf, int length)
 {
-	int strPtr=0;
-	int x=0;
+	int strPtr = 0;
+	int x = 0;
 
-	if(length>62) length=62;
+	if (length > 62) length = 62;
 
-	for(x=0;x<length;x++)
+	for (x = 0; x < length; x++)
 	{
-		strPtr=x*2;
-		buf[x]=GetBinVal(str[strPtr]);
-		buf[x]<<=4;
-		buf[x]+=GetBinVal(str[strPtr+1]);
+		strPtr = x * 2;
+		buf[x] = GetBinVal(str[strPtr]);
+		buf[x] <<= 4;
+		buf[x] += GetBinVal(str[strPtr + 1]);
 	}
 
-	return x/2;
+	return x / 2;
 }
 
 void ShowEnabledAntennas(uint32_t antMask)
 {
-	int x=0;
+	int x = 0;
 	printf("EnabledAntennas:\n");
 
-	for(x=0;x<32;x++)
+	for (x = 0; x < 32; x++)
 	{
-		if((antMask) & (1<<(x)))
+		if ((antMask) & (1 << (x)))
 		{
-			printf("ANT # %d\n",x+1);
+			printf("ANT # %d\n", x + 1);
 		}
 	}
 }
 
 static void handle_selectAntenna()
 {
-	struct NUR_CMD_LOADSETUP_PARAMS *setup;
+	struct NUR_CMD_LOADSETUP_PARAMS* setup;
 	int flags;
 	int antNum, rc;
 
@@ -936,11 +936,11 @@ static void handle_selectAntenna()
 	printf("Enable/Disable Antenna # (1 - 16): ");
 	if (scanf("%d", &antNum) == 1)
 	{
-		if(antNum>0 && antNum<=16)
+		if (antNum > 0 && antNum <= 16)
 		{
 			setup->flags = NUR_SETUP_ANTMASKEX;
 			//Toggle specified bit on antennaMaskEx
-			setup->antennaMaskEx ^= 1UL << (antNum-1);
+			setup->antennaMaskEx ^= 1UL << (antNum - 1);
 			ShowEnabledAntennas(setup->antennaMaskEx);
 			//Set new antennaMask to module
 			rc = NurApiSetModuleSetup(hApi, setup);
@@ -960,6 +960,89 @@ static void handle_selectAntenna()
 		printf("Invalid input\n");
 	}
 
+	wait_key();
+}
+
+static void handle_readTag()
+{
+	int x = 0;
+	int memBank = 0;
+	int wAddr = 0;
+	int wCount = 0;
+	uint16_t rdWords = 0;
+	struct NUR_CMD_READ_PARAMS rdParams;
+
+	char curepc[32] = "";	//Current EPC as string
+	uint8_t epcBuf[62];
+	int epcBufLen;
+
+	cls();
+
+	printf("Read tag memory\n");
+
+	printf("Enter EPC: ");
+	if (scanf("%s", &curepc) != 1 || strlen(curepc) < 2 || (strlen(curepc) % 2) != 0) {
+		printf("EPC must be pairs of two hex chars\n");
+		goto INVALID_INPUT;
+	}
+
+	printf("Enter memory bank to read: ");
+	if (scanf("%d", &memBank) != 1) {
+		printf("Invalid memory bank\n");
+		goto INVALID_INPUT;
+	}
+	printf("Enter word address: ");
+	if (scanf("%d", &wAddr) != 1) {
+		printf("Invalid address\n");
+		goto INVALID_INPUT;
+	}
+	printf("Enter word count: ");
+	if (scanf("%d", &wCount) != 1) {
+		printf("Invalid word count\n");
+		goto INVALID_INPUT;
+	}
+
+	// Convert HEX string to byte array.
+	epcBufLen = HexStringToBin(curepc, epcBuf, strlen(curepc));
+			
+    memset(&rdParams, 0, sizeof(rdParams));
+
+	// Setup read block
+	rdParams.rb.address32 = (uint32_t)wAddr;
+    rdParams.rb.bank = (uint8_t)memBank;
+    rdParams.rb.wordcount = (uint8_t)wCount;
+
+	// Setup sigulation block for EPC
+	rdParams.flags |= RW_SBP;
+	rdParams.sb.address32 = 32;
+	rdParams.sb.bank = NUR_BANK_EPC;
+	rdParams.sb.maskbitlen = (uint16_t)(epcBufLen * 8);
+	nurMemcpy(rdParams.sb.maskdata, epcBuf, epcBufLen);
+			
+	// Read tag. Do not pass rdBuffer parameter, we use hApi->resp->rawdata instead	
+	x = NurApiReadTag(hApi, &rdParams, NULL, &rdWords);
+
+	if (x == NUR_SUCCESS) {
+		printf("Read success, rdWords %d\n", rdWords);
+
+		uint8_t* rdBuf = hApi->resp->rawdata;
+		for (uint16_t n = 0; n < rdWords*2; n++) {
+			printf("%02X ", rdBuf[n]);
+			if (n % 16 == 15) {
+				printf("\n");
+            }
+		}
+        printf("\n");
+	}
+	else {
+		printf("Read error = %d\n", x);
+	}
+
+	wait_key();
+	return;		
+
+INVALID_INPUT:
+	printf("Invalid input\n");
 	wait_key();
 }
 
@@ -1523,6 +1606,7 @@ static void options()
 		printf("[c]\tContinuous carrier\n");
 		printf("[w]\tWrite EPC\n");
 		printf("[p]\tWrite to USER mem\n");
+		printf("[q]\tRead tag mem\n");
 		printf("[k]\tKill tag\n");
 		printf("[l]\tLock tag\n");
 		printf("[a]\tSet antenna\n");
@@ -1571,6 +1655,7 @@ static int32_t do_command()
 	case 'c': handle_cont_carrier(); break;
 	case 'w': handle_writeEPC(); break;
 	case 'p': handle_writeToUserMem(); break;
+	case 'q': handle_readTag(); break;
 	case 'a': handle_selectAntenna(); break;
 	case 'k': handle_kill_tag(); break;
 	case 'l': handle_lock_tag(); break;
