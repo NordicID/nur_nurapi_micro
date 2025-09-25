@@ -1205,7 +1205,7 @@ static void WriteCommonSingulationBlock(struct NUR_SINGULATED_CMD_PARAMS *params
 
 	if (params->flags & RW_SBP)
 	{
-		// Singlation block present
+		// Singulation block present
 		// Calculate bytes to follow from bit length
 		params->sb.bytestofollow = (uint8_t)(((params->sb.maskbitlen / 8) + ((params->sb.maskbitlen % 8) != 0)));
 
@@ -1459,8 +1459,27 @@ int NURAPICONV NurApiPermalock(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_PE
 	uint8_t *payloadBuffer = TxPayloadDataPtr;
 	uint16_t payloadSize = 0;
 
+	int btf = 0;
+	int hdrSize = 0;
+
+	struct NUR_PERMALOCKBLOCK* plb = &params->plb;
+
 	// Write "Common RW" block and "Singulation" block to payload buffer
 	WriteCommonSingulationBlock((struct NUR_SINGULATED_CMD_PARAMS*)params, payloadBuffer, &payloadSize);
+
+	/* R/L, bank, addr (4), range */
+	btf = 1 + 1 + 4 + 1;
+	if (plb->lock)
+		btf += plb->range * sizeof(uint16_t);	/* Add for write (set lock). */
+
+	PacketByte(payloadBuffer, btf, &payloadSize);
+	PacketByte(payloadBuffer, plb->lock ? 1 : 0, &payloadSize);
+	PacketByte(payloadBuffer, plb->bank, &payloadSize);
+	PacketDword(payloadBuffer, plb->addr, &payloadSize);
+	PacketByte(payloadBuffer, plb->range, &payloadSize);
+
+	if (plb->lock && plb->range > 0)
+		PacketBytes(payloadBuffer, plb->wMask, plb->range * sizeof(uint16_t), &payloadSize);
 
 	error = NurApiXchPacket(hNurApi, NUR_CMD_PERMALOCK, payloadSize, DEF_LONG_TIMEOUT);
 	if (error == NUR_ERROR_G2_TAG_RESP)

@@ -274,6 +274,88 @@ int InitNurApiHandle(struct NUR_API_HANDLE *hApi)
 	return hApi->RxBufferLen;
 }
 
+BOOL ask_epc(struct NUR_SINGULATED_CMD_PARAMS* params, const char* prompt)
+{
+	char epcBuf[32] = "";
+	int epcBufLen;
+
+	// Ask EPC from user
+	printf("%s", prompt);
+	if (fgets(epcBuf, sizeof(epcBuf), stdin) == NULL) {
+		return FALSE;
+	}
+
+	// Remove trailing newline if present
+	epcBuf[strcspn(epcBuf, "\r\n")] = 0;
+
+	if (strlen(epcBuf) > 0 && (strlen(epcBuf) % 2) != 0) {
+		printf("EPC must be pairs of two hex chars\n");
+		return FALSE;
+	}
+	if (strlen(epcBuf) > 0) {
+		// Use singulation
+		params->flags |= RW_SBP;
+		params->sb.bank = NUR_BANK_EPC;
+		params->sb.address32 = 32;
+		epcBufLen = HexStringToBin(epcBuf, params->sb.maskdata, strlen(epcBuf));
+		params->sb.maskbitlen = epcBufLen * 8;
+	}
+	else
+	{
+		// Access tag without singulation
+		params->flags &= ~RW_SBP;
+	}
+	return TRUE;
+}
+
+BOOL ask_password(struct NUR_SINGULATED_CMD_PARAMS* params, const char* prompt)
+{
+	char input[32]; // Buffer for user input
+
+	// Ask password from user
+	printf("%s", prompt);
+	if (fgets(input, sizeof(input), stdin) == NULL) {
+		goto INVALID_INPUT;
+	}
+
+	// Remove newline character
+	input[strcspn(input, "\r\n")] = '\0';
+
+	// If input is empty, set password to 0
+	if (strlen(input) == 0) {
+		goto NO_PASSWORD;
+	}
+
+	// Convert input to uint32_t
+	char* endptr;
+	long value = strtol(input, &endptr, 10);
+
+	// Check if input is a valid decimal number and within uint32_t range
+	if (*endptr != '\0' || value < 0 || value > UINT32_MAX) {
+		goto INVALID_INPUT;
+	}
+	else {
+		// If input is valid, set the password and secure flag
+		params->passwd = (uint32_t)value;
+		params->flags |= params->passwd ? RW_SEC : 0;
+	}
+	return TRUE;
+
+NO_PASSWORD:
+	// If no password is provided, set password to 0
+	// and clear the secure flag
+	params->passwd = 0;
+	params->flags &= ~RW_SEC;
+	return TRUE;
+
+INVALID_INPUT:
+	// If input is invalid, set password to 0
+	// and clear the secure flag
+	params->passwd = 0;
+	params->flags &= ~RW_SEC;
+	return FALSE;
+}
+
 void wait_key()
 {
 	printf("Hit any key...");
@@ -296,7 +378,7 @@ static void handle_connection()
 	{
 		int num = -1;
 		printf("Enter COM number (baud 115200): " );
-		if (scanf("%d", &num) == 1) {
+		if (scanf("%d%*c", &num) == 1) {
 			if (open_serial(hApi, num, 115200)) {
 				gConnected = TRUE;
 				printf("Connected.\n");
@@ -1289,6 +1371,127 @@ static void handle_switch_mode()
 	wait_key();
 }
 
+static void handle_block_permalock(BOOL lockBlocks)
+{
+	int n;
+	int temp;
+	int error;
+	struct NUR_CMD_PERMALOCK_PARAM bpParams;	// BlockPermalock parameters
+	bpParams.flags = 0;
+
+	cls();
+	if (lockBlocks) {
+		printf("* Set BlockPermalock (lock blocks) *\n");
+	}
+	else {
+		printf("* Get BlockPermalock (read blocks) *\n");
+	}
+
+	// Ask target EPC from user
+	if (!ask_epc(&bpParams, "Enter EPC for singulation (or leave empty): ")) {
+		goto INVALID_INPUT;
+	}
+	// Ask access password from user
+	if (!ask_password(&bpParams, "Enter access password in dec (or leave empty): ")) {
+		goto INVALID_INPUT;
+	}
+	// Set up BlockPermalock parameters
+	bpParams.plb.lock = lockBlocks;
+	printf("Enter MemBank (3 is USER): ");
+	if (scanf("%u%*c", &temp) != 1) {
+		goto INVALID_INPUT;
+	}
+	bpParams.plb.bank = (uint8_t)temp;
+	printf("Enter BlockPtr (the starting address for Mask, in units of 16 blocks): ");
+	if (scanf("%d%*c", &bpParams.plb.addr) != 1) {
+		goto INVALID_INPUT;
+	}
+	printf("Enter BlockRange (specifies the range of Mask, starting at BlockPtr): ");
+	if (scanf("%u%*c", &temp) != 1) {
+		goto INVALID_INPUT;
+	}
+	bpParams.plb.range = (uint8_t)temp;
+	// Ask mask from user if range is > 0 and lockBlocks is TRUE
+	if (bpParams.plb.lock && bpParams.plb.range > 0) {
+		printf("Enter mask in hex (e.g. 0001): ");
+		for (n = 0; n < bpParams.plb.range; n++) {
+			if (scanf("%4hx", &bpParams.plb.wMask[n]) != 1) {
+				goto INVALID_INPUT;
+			}
+		}
+	}
+
+	// Example of setting up BlockPermalock parameters
+	// This is commented out, but you can use it as a reference
+	// The example sets up a permalock for USER memory bank,
+	// starting at address 0, range of 2 blocks,
+	// and a mask of 0xFFFF and 0x000F.
+	// So it would lock the first 20 blocks of USER memory
+	// 
+	// bpParams.plb.lock = TRUE;
+	// bpParams.plb.bank = NUR_BANK_USER;
+	// bpParams.plb.addr = 0;
+	// bpParams.plb.range = 2;
+	// bpParams.plb.wMask[0] = 0xFFFF;
+	// bpParams.plb.wMask[1] = 0x000F;
+
+	error = NurApiPermalock(hApi, &bpParams);
+
+	if (error == NUR_SUCCESS)
+	{
+		if (lockBlocks) {
+			printf("BlockPermalock set successfully\n");
+		}
+		else {
+			printf("BlockPermalock read successfully\n");
+			printf("Bank: %d, Addr: %d, nMask: %d",
+				hApi->resp->permalock.bank,
+				hApi->resp->permalock.addr,
+				hApi->resp->permalock.nMask);
+			for (n = 0; n < hApi->resp->permalock.nMask; n++) {
+				printf(", wResp[%d]: %04X", n, hApi->resp->permalock.wResp[n]);
+			}
+			printf("\n");
+		}
+	}
+	else
+	{
+		printf("NurApiPermalock Error: %d, Message: %s\n", error, (char*)NurApiGetErrorMessage(error));
+	}
+	wait_key();
+	return;
+
+INVALID_INPUT:
+	printf("Invalid input\n");
+	wait_key();
+}
+
+static void show_block_permalock_menu()
+{
+	while (TRUE)
+	{
+		cls();
+		printf("* BlockPermalock operations menu *\n");
+		printf("[1]\tSet BlockPermalock (lock)\n");
+		printf("[2]\tGet BlockPermalock (read)\n");
+		printf("\nESC\tReturn\n");
+		printf("\nSelection: ");
+
+		int key = _getch();
+		printf("\n");
+
+		if (key == 27) // ESC
+			return;
+
+		switch (key)
+		{
+		case '1': handle_block_permalock(TRUE); break;
+		case '2': handle_block_permalock(FALSE); break;
+		default: break;
+		}
+	}
+}
+
 static void options()
 {
 	if (gConnected)
@@ -1312,6 +1515,7 @@ static void options()
 		printf("[8]\tTune antenna and enable Auto-Tune feature\n");
 		printf("[9]\tSet TX Level\n");
 		printf("[d]\tInventoryRead\n");
+		printf("[b]\tBlockPermalock\n");
 		printf("[e]\tEnable/disable events\n");
 		printf("[r]\tGet Reflected Power\n");
 		printf("[s]\tSwitch device mode to '%c'\n", mode == 'A' ? 'B' : 'A');
@@ -1359,6 +1563,7 @@ static int32_t do_command()
 			  }
 	case '8': handle_tune(); break;
 	case '9': handle_setup_set_txlevel(); break;
+	case 'b': show_block_permalock_menu(); break;
 	case 'e': handle_enable_disable_events(); break;
 	case 'r': handle_get_reflected_power_ex(); break;
 	case 's': handle_switch_mode(); break;
