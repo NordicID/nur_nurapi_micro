@@ -31,6 +31,9 @@ static int32_t gConnected = FALSE;
 static uint8_t gRxBuffer[NUR_MAX_RCV_SZ];
 static uint8_t gTxBuffer[NUR_MAX_SEND_SZ];
 
+static int32_t gDevcapsValid = FALSE;
+struct NUR_CMD_DEVCAPS_RESP gDevcaps;
+
 /*
 In this approach we are using a static API structure.
 */
@@ -452,7 +455,10 @@ static void handle_setup_set_txlevel()
 		return;
 
 	cls();
-	printf("Set TX level (0 - 19): ");
+	if (gDevcapsValid)
+		printf("Set TX level (0 - %d): ", gDevcaps.txSteps - 1);
+	else
+		printf("Set TX level (0 - ???): ");
 	if (scanf("%d", &txlevel) == 1)
 	{
 		params.flags = NUR_SETUP_TXLEVEL;
@@ -461,6 +467,11 @@ static void handle_setup_set_txlevel()
 		rc = NurApiSetModuleSetup(hApi, &params);
 
 		if (rc == NUR_SUCCESS) {
+			if (gDevcapsValid) {
+				int dBm = gDevcaps.maxTxdBm - (txlevel * gDevcaps.txAttnStep);
+				int mW = (int)round(pow(10, (double)dBm / 10));
+				printf("Tx level (%d): %d dBm / %d mW\n", txlevel, dBm, mW);
+			}
 			printf("OK\n");
 		}
 		else
@@ -1105,6 +1116,42 @@ INVALID_INPUT:
 	wait_key();
 }
 
+static void handle_get_device_caps()
+{
+	struct NUR_CMD_DEVCAPS_RESP* dc;
+	int rc;
+
+	if (!gConnected)
+		return;
+	cls();
+
+	rc = NurApiGetDeviceCaps(hApi);
+
+	if (rc == NUR_SUCCESS) {
+		dc = &hApi->resp->devcaps;
+		printf("* Device capabilities *\n");
+		printf("flagSet1: 0x%x\n", dc->flagSet1);
+		printf("flagSet2: 0x%x\n\n", dc->flagSet2);
+		printf("Maximum TX power in terms of dBm: %d\n", dc->maxTxdBm);
+		printf("TX level attenuation pre step in dBm: %d\n", dc->txAttnStep);
+		printf("Maximum TX level in mW: %d\n", dc->maxTxmW);
+		printf("Number of TX attenuation levels available: %d\n\n", dc->txSteps);
+		printf("Number of 96 - bit EPCs that the module tag buffer can currently hold: %d\n", dc->szTagBuffer);
+		printf("Number of maximum possible antennas with current configuration: %d\n", dc->curCfgMaxAnt);
+		printf("Number of maximum possible GPIO pins with current configuration: %d\n\n", dc->curCfgMaxGPIO);
+		printf("RFID chip version: %d\n", dc->chipVersion);
+		printf("Module type: %d\n", dc->moduleType);
+		printf("Module configuration flag bits: 0x%x\n", dc->moduleConfigFlags);
+		gDevcaps = hApi->resp->devcaps;
+		gDevcapsValid = TRUE;
+	}
+	else {
+		printf("NUR GetDeviceCaps error. Code = %d.\n", rc);
+	}
+
+	wait_key();
+}
+
 static void handle_get_diag_report()
 {
 	struct NUR_DIAG_REPORT report;
@@ -1275,6 +1322,7 @@ static void options()
 		printf("[k]\tKill tag\n");
 		printf("[l]\tLock tag\n");
 		printf("[a]\tSet antenna\n");
+		printf("[z]\tGet device capabilities\n");
 		printf("[x]\tGet diagnostics report\n");
 
 	} else {
@@ -1321,6 +1369,7 @@ static int32_t do_command()
 	case 'a': handle_selectAntenna(); break;
 	case 'k': handle_kill_tag(); break;
 	case 'l': handle_lock_tag(); break;
+	case 'z': handle_get_device_caps(); break;
 	case 'x': handle_get_diag_report(); break;
 
 	default: break;
