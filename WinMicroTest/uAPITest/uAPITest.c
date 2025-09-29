@@ -1539,7 +1539,7 @@ static void handle_block_permalock(BOOL lockBlocks)
 	}
 	else
 	{
-		printf("NurApiPermalock Error: %d, Message: %s\n", error, (char*)NurApiGetErrorMessage(error));
+		printf("NurApiPermalock error. Code = %d.\n", error);
 	}
 	wait_key();
 	return;

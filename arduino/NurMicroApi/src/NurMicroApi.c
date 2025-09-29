@@ -404,7 +404,7 @@ int NURAPICONV NurApiXchPacket(struct NUR_API_HANDLE *hNurApi, uint8_t cmd, uint
 	    uint32_t bytesOutput = 0;
 		error = NurApiSetupPacket(hNurApi, cmd, payloadLen, 0, &packetLen);
 		if (error != NUR_SUCCESS)
-			return error;
+			return error;		
 
 		// Write packet to module
 		// TODO: Handle fragmented write
@@ -418,6 +418,7 @@ WAITMORE:
         packetHandlerState = STATE_IDLE;
         packetState = STATE_IDLE;
         hNurApi->RxBufferUsed = 0;
+        processPos = bytesRead = 0;
     }
 
 	// Wait and read response from module
@@ -451,7 +452,7 @@ WAITMORE:
 		}
 	}
 
-	if (packetState != STATE_PACKETREADY)
+	if (packetState != STATE_PACKETREADY || timeout <= 0)
 	{
 		// Packet was not ready within timeout
 		return NUR_ERROR_TR_TIMEOUT;
@@ -1227,7 +1228,7 @@ static void WriteCommonSingulationBlock(struct NUR_SINGULATED_CMD_PARAMS *params
 #ifdef CONFIG_GENERIC_READ
 int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi,
 							 struct NUR_CMD_READ_PARAMS *params,
-							 uint8_t *rdBuffer, uint16_t *rdWords )
+							 uint8_t *rdBuffer, uint16_t *rdWords)
 {
 	int error;
 	uint8_t *payloadBuffer = TxPayloadDataPtr;
@@ -1235,7 +1236,7 @@ int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi,
 	uint32_t rdByteCount = params->rb.wordcount * 2;
 	struct NUR_READBLOCK *rb = &params->rb;
 
-	if (rdByteCount < 2 || rdByteCount > 510 || ((rdByteCount &1) != 0)) {
+	if (rdByteCount > 510 || ((rdByteCount & 1) != 0)) {
 		RETLOGERROR(NUR_ERROR_INVALID_PARAMETER);
 	}
 
@@ -1263,7 +1264,8 @@ int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi,
 	LOGIFERROR(error);
 
 	if (error == NUR_SUCCESS) {
-		nurMemcpy(rdBuffer, hNurApi->resp->rawdata, RxPayloadLen);
+		if (rdBuffer)
+			nurMemcpy(rdBuffer, hNurApi->resp->rawdata, RxPayloadLen);
 		if (rdWords != NULL) {
 			*rdWords = RxPayloadLen / 2;
 		}
@@ -1460,7 +1462,6 @@ int NURAPICONV NurApiPermalock(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_PE
 	uint16_t payloadSize = 0;
 
 	int btf = 0;
-	int hdrSize = 0;
 
 	struct NUR_PERMALOCKBLOCK* plb = &params->plb;
 

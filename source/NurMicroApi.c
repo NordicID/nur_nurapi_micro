@@ -1462,7 +1462,6 @@ int NURAPICONV NurApiPermalock(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_PE
 	uint16_t payloadSize = 0;
 
 	int btf = 0;
-	int hdrSize = 0;
 
 	struct NUR_PERMALOCKBLOCK* plb = &params->plb;
 
