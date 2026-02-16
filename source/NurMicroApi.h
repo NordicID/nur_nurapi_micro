@@ -757,6 +757,8 @@ enum NUR_ERRORCODES
 
 	/** Generic, non-interpreted / unexpected error */
 	NUR_ERROR_GENERAL = 0x10,
+	/** Device wants to have last packet again due to the transfer failure. */
+	NUR_ERROR_RESEND_PACKET,
 
 	/** No tag(s) found */
 	NUR_ERROR_NO_TAG = 0x20,
@@ -785,6 +787,12 @@ enum NUR_ERRORCODES
 
 	/** HW error */
 	NUR_ERROR_READER_HW = 0x60,
+	/** Antenna too bad */
+	NUR_ERROR_BAD_ANTENNA,
+	/** Low voltage */
+	NUR_ERROR_LOW_VOLTAGE,
+	/** Over temperature */
+	NUR_ERROR_OVER_TEMP,
 
 	/** Invalid handle passed to function */
 	NUR_ERROR_INVALID_HANDLE = 0x1000,
