@@ -17,7 +17,7 @@
 #ifndef _NURPROTOCOL_H_
 #define _NURPROTOCOL_H_ 1
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(NURMICROAPI_ALIGNED)
 #define NUR_PACKED __attribute__((packed))
 #else
 #define NUR_PACKED
