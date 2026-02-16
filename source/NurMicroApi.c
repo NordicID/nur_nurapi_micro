@@ -197,7 +197,7 @@ static uint16_t NurCRC16(uint16_t crc, uint8_t *buf, uint32_t len)
 #define INLINE_CRC16_UPDATE
 
 #ifdef INLINE_CRC16_UPDATE
-static uint16_t __inline crc_16_update(uint16_t crc, uint8_t data)
+static __inline uint16_t crc_16_update(uint16_t crc, uint8_t data)
 #else
 static uint16_t crc_16_update(uint16_t crc, uint8_t data)
 #endif
