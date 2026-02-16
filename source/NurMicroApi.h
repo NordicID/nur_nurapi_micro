@@ -790,6 +790,23 @@ enum NUR_DIAG_REPORT_FLAGS
 };
 
 /**
+ * Gen2X control flags.
+ * @sa struct NUR_GEN2X_CONFIG
+ * @sa NurApiGetGen2XConfig
+ * @sa NurApiSetGen2XConfig
+ */
+enum NUR_GEN2X_FLAGS
+{
+    NUR_GEN2X_ENABLE_SCANID         = (1 << 0),     /**< Enable ScanId feature */
+    NUR_GEN2X_ENABLE_TAGFOCUS       = (1 << 1),     /**< Enable TagFocus feature */
+    NUR_GEN2X_ENABLE_FASTID         = (1 << 2),     /**< Enable FastID feature */
+    NUR_GEN2X_ACCEPT_CRC5_CRC5PLUS  = (1 << 3),     /**< Enable accepting both CRC5 and CRC5Plus for CR protection */
+    NUR_GEN2X_POWER_BOOST           = (1 << 4),     /**< Enable gen2v3 power boost feature */
+    NUR_GEN2X_ENABLE_PROTECTED_MODE = (1 << 5),     /**< Enable protected mode feature */
+    NUR_GEN2X_ALL_FLAGS             = 0x3F          /**< All supported flags */
+};
+
+/**
  * NurApi error codes
  */
 enum NUR_ERRORCODES
@@ -1131,6 +1148,33 @@ int NURAPICONV NurApiProgramBootloader(struct NUR_API_HANDLE *hNurApi, pProgramP
 int NURAPICONV NurApiDiagGetReport(struct NUR_API_HANDLE *hNurApi, uint32_t flags, struct NUR_DIAG_REPORT *report, uint32_t reportSize);
 int NURAPICONV NurApiDiagSetConfig(struct NUR_API_HANDLE *hNurApi, uint32_t flags, uint32_t interval);
 int NURAPICONV NurApiDiagGetConfig(struct NUR_API_HANDLE *hNurApi, uint32_t *flags, uint32_t *interval);
+
+/** @fn int NurApiGetGen2XConfig(struct NUR_API_HANDLE *hNurApi, struct NUR_GEN2X_CONFIG* cfg)
+ *
+ * Get current gen2x config from NUR module.
+ *
+ * @sa NUR_GEN2X_CONFIG, NurApiSetGen2XConfig(), enum NUR_GEN2X_FLAGS
+ *
+ * @param	hNurApi		Handle to valid NurApi object instance.
+ * @param	cfg				Pointer to a buffer that receives current gen2x config.
+ *
+ * @return	Zero when succeeded, On error non-zero error code is returned.
+ */
+int NURAPICONV NurApiGetGen2XConfig(struct NUR_API_HANDLE *hNurApi, struct NUR_GEN2X_CONFIG* cfg);
+
+/** @fn int NurApiSetGen2XConfig(struct NUR_API_HANDLE *hNurApi, struct NUR_GEN2X_CONFIG* cfg)
+ *
+ * Set new gen2x config to NUR module. This will store new setup in volatile memory.
+ * If you need persistent setup, you'll need to call NurApiStoreCurrentSetup()
+ *
+ * @sa NUR_GEN2X_CONFIG, NurApiGetGen2XConfig(), NurApiStoreCurrentSetup()
+ *
+ * @param	hNurApi		Handle to valid NurApi object instance.
+ * @param	cfg				Pointer to a new gen2x config.
+ *
+ * @return	Zero when succeeded, On error non-zero error code is returned.
+ */
+int NURAPICONV NurApiSetGen2XConfig(struct NUR_API_HANDLE *hNurApi, struct NUR_GEN2X_CONFIG* cfg);
 
 #ifndef IMPLEMENT_CRC16
 extern uint16_t NurCRC16(uint16_t crc, uint8_t *buf, uint32_t len);

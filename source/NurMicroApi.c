@@ -587,6 +587,33 @@ int NURAPICONV NurApiDiagGetReport(struct NUR_API_HANDLE *hNurApi, uint32_t flag
 	return error;
 }
 
+int NURAPICONV NurApiGetGen2XConfig(struct NUR_API_HANDLE *hNurApi, struct NUR_GEN2X_CONFIG* cfg)
+{
+  int error;
+
+	error = NurApiXchPacket(hNurApi, NUR_CMD_GEN2X_CFG, 0, DEF_TIMEOUT);
+
+	if (error == NUR_SUCCESS) {
+		uint32_t len = hNurApi->respLen;
+		if (len == sizeof(struct NUR_GEN2X_CONFIG)) {
+			nurMemcpy(cfg, &hNurApi->resp->gen2x, len);
+		}
+	}
+
+	return error;
+}
+
+int NURAPICONV NurApiSetGen2XConfig(struct NUR_API_HANDLE *hNurApi, struct NUR_GEN2X_CONFIG* cfg)
+{
+	uint16_t payloadSize = cfg ? sizeof(struct NUR_GEN2X_CONFIG) : 0;
+	if (payloadSize > 0) {
+		nurMemcpy(TxPayloadDataPtr, cfg, payloadSize);
+	} else {
+		return NUR_ERROR_INVALID_PARAMETER;
+	}
+	return NurApiXchPacket(hNurApi, NUR_CMD_GEN2X_CFG, payloadSize, DEF_TIMEOUT);
+}
+
 int NURAPICONV NurApiGetReaderInfo(struct NUR_API_HANDLE *hNurApi)
 {
 	struct NUR_CMD_READERINFO_RESP ri;

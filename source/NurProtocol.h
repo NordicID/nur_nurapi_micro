@@ -121,6 +121,7 @@ enum {
 	NUR_CMD_PERMALOCK,
 	NUR_CMD_TAGTRACKING_STREAM, // Internal stream mode used by NURAPI TagTracking
 	NUR_CMD_GEN2V2,		// Operates on sub-commands and their structures.
+	NUR_CMD_GEN2X_CFG,
 	NUR_G2_LAST
 };
 
@@ -863,6 +864,29 @@ struct NUR_DIAG_REPORT
     uint32_t invalidCmds;  /**< Number of invalid (not supported) commands received */
 } NUR_PACKED;
 
+/**
+ * Gen2X configuration
+ * @sa NurApiGetGen2XConfig
+ * @sa NurApiSetGen2XConfig
+*/
+struct NUR_GEN2X_CONFIG
+{
+	uint16_t flags;                 /**< Gen2X control flags. see enum NUR_GEN2X_FLAGS */
+
+	uint8_t inventoryMode;         /**< Inventory mode: 0=Gen2, 1=Gen2X, 2=Hybrid */
+
+	uint8_t scanCodeType;          /**< Scan/ScanId encoding method: 0=Rfu, 1=Antipodal, 2=CCOneHalf, 3=CCThreeQuarters */
+	uint8_t scanCRType;            /**< Scan/ScanId collision resolution: 0=ID32, 1=ID16, 2=StoredCRC, 3=RN16 */
+	uint8_t scanProtectionType;    /**< Scan/ScanId data protection setting: 0=None, 1=Parity, 2=CRC5, 3=CRC5Plus */
+	uint8_t scanIdType;            /**< Scan/ScanId ID setting: 0=NoAckResponse, 1=TMNPlusTSN, 2=Part, 3=Full */
+	uint8_t scanCrypto;            /**< Scan/ScanId Crypto setting: 0=All tags, 1=S=1 tags only */
+
+	uint8_t scanIdAppSize;         /**< ScanId application size: 0=Rfu, 1=24 bits, 2=16 bits, 3=8 bits */
+	uint32_t scanIdAppId;          /**< ScanId AppId setting used to select certain tag population */
+
+	uint32_t protectedModePin;     /**< Protected mode PIN code */
+} NUR_PACKED;
+
 /////////////////////////////////////////////////////////////////////////////
 // RESPONSES
 
@@ -1198,6 +1222,7 @@ struct NUR_CMD_RESP
 		struct NUR_TUNEEVENT_DATA			tuneeventdata;
 		struct NUR_CMD_PERMALOCK_RD_RESP	permalock;
 		struct NUR_CMD_DIAG_REPORT_RESP     diagreport;
+		struct NUR_GEN2X_CONFIG gen2x;
 
 		uint8_t rawdata[1];
 	};
