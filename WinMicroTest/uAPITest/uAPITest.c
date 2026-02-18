@@ -1328,6 +1328,98 @@ static void handle_get_diag_report()
 	wait_key();
 }
 
+static int getgen2x(struct NUR_GEN2X_CONFIG *gen2x) {
+  int rc = NurApiGetGen2XConfig(hApi, gen2x);
+  if (rc == NUR_SUCCESS) {
+    printf("flags: 0x%x\n", gen2x->flags);
+    printf("scanId: ");
+    gen2x->flags & NUR_GEN2X_ENABLE_SCANID ? printf("enabled\n") : printf("disabled\n");
+    printf("tagFocus: ");
+    gen2x->flags & NUR_GEN2X_ENABLE_TAGFOCUS ? printf("enabled\n") : printf("disabled\n");
+    printf("fastId: ");
+    gen2x->flags & NUR_GEN2X_ENABLE_FASTID ? printf("enabled\n") : printf("disabled\n");
+    printf("acceptCrc5Crc5Plus: ");
+    gen2x->flags & NUR_GEN2X_ACCEPT_CRC5_CRC5PLUS ? printf("enabled\n") : printf("disabled\n");
+    printf("powerBoost: ");
+    gen2x->flags & NUR_GEN2X_POWER_BOOST ? printf("enabled\n") : printf("disabled\n");
+    printf("protectedMode: ");
+    gen2x->flags & NUR_GEN2X_ENABLE_PROTECTED_MODE ? printf("enabled\n") : printf("disabled\n");
+    printf("inventoryMode: 0x%x\n", gen2x->inventoryMode);
+    printf("scanCodeType: 0x%x\n", gen2x->scanCodeType);
+    printf("scanCRType: 0x%x\n", gen2x->scanCRType);
+    printf("scanProtectionType: 0x%x\n", gen2x->scanProtectionType);
+    printf("scanIdType: 0x%x\n", gen2x->scanIdType);
+    printf("scanCrypto: 0x%x\n", gen2x->scanCrypto);
+    printf("scanIdAppSize: 0x%x\n", gen2x->scanIdAppSize);
+    printf("scanIdAppId: 0x%x\n", gen2x->scanIdAppId);
+    printf("protectedModePin: 0x%x\n", gen2x->protectedModePin);
+  } else {
+    printf("NurApiGetGen2XConfig error. Code = %d.\n", rc);
+  }
+  return rc;
+}
+
+static int setgen2x(struct NUR_GEN2X_CONFIG *gen2x) {
+    int rc = NurApiSetGen2XConfig(hApi, gen2x);
+    if (rc != NUR_SUCCESS) {
+      printf("NurApiSetGen2XConfig error. Code = %d.\n", rc);
+    }
+    return rc;
+}
+
+static void handle_gen2x()
+{
+	struct NUR_CMD_DEVCAPS_RESP* dc;
+	struct NUR_GEN2X_CONFIG gen2x;
+	int rc;
+
+	if (!gConnected)
+		return;
+	cls();
+
+	rc = NurApiGetDeviceCaps(hApi);
+
+	if (rc == NUR_SUCCESS) {
+		dc = &hApi->resp->devcaps;
+		printf("* Device capabilities *\n");
+		printf("flagSet1: 0x%x\n", dc->flagSet1);
+    if (dc->flagSet1 & NUR_DC_GEN2X) {
+		  printf("Device has gen2x capabilities, get config\n\n");
+      rc = getgen2x(&gen2x);
+      if (rc == NUR_SUCCESS) {
+        printf("\nTest API? 'y' or ESC\n");
+        int key = _getch();
+        printf("\n");
+        if (key == 27) // ESC
+          return;
+        switch (key) {
+          case 'y':
+            struct NUR_GEN2X_CONFIG test_gen2x = {0};
+            rc = setgen2x(&test_gen2x);
+            if (rc == NUR_SUCCESS) {
+              printf("\nSet config to zeroes success!\n");
+              getgen2x(&test_gen2x);
+              printf("\nRestore previous config!\n");
+              setgen2x(&gen2x);
+              getgen2x(&gen2x);
+            }
+            break;
+          default: break;
+        }
+      }
+    } else {
+		  printf("Device does not have gen2x capabilities? most likely NUR2, or older NUR3 FW");
+    }
+		gDevcaps = hApi->resp->devcaps;
+		gDevcapsValid = TRUE;
+	}
+	else {
+		printf("NUR GetDeviceCaps error. Code = %d.\n", rc);
+	}
+
+	wait_key();
+}
+
 /* Calculate a reflected power */
 static int CalcReflPower(int iPart, int qPart, int div) {
 	double dRfdBm;
@@ -1612,6 +1704,7 @@ static void options()
 		printf("[a]\tSet antenna\n");
 		printf("[z]\tGet device capabilities\n");
 		printf("[x]\tGet diagnostics report\n");
+		printf("[g]\tGet gen2x config\n");
 
 	} else {
 		printf("[1]\tConnect\n");
@@ -1661,6 +1754,7 @@ static int32_t do_command()
 	case 'l': handle_lock_tag(); break;
 	case 'z': handle_get_device_caps(); break;
 	case 'x': handle_get_diag_report(); break;
+	case 'g': handle_gen2x(); break;
 
 	default: break;
 	}
