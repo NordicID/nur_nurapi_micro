@@ -12,10 +12,12 @@
 	WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#include "NurMicroApi.h"
+
 #ifndef _NURPROTOCOL_H_
 #define _NURPROTOCOL_H_ 1
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(NURMICROAPI_ALIGNED)
 #define NUR_PACKED __attribute__((packed))
 #else
 #define NUR_PACKED
@@ -117,6 +119,9 @@ enum {
 	NUR_CMD_BLWRITE_EX,
 	NUR_CMD_EPCENUM,
 	NUR_CMD_PERMALOCK,
+	NUR_CMD_TAGTRACKING_STREAM, // Internal stream mode used by NURAPI TagTracking
+	NUR_CMD_GEN2V2,		// Operates on sub-commands and their structures.
+	NUR_CMD_GEN2X_CFG,
 	NUR_G2_LAST
 };
 
@@ -130,7 +135,8 @@ enum {
 	NUR_NXPCMD_EASALARM,
 	NUR_MZ4CMD_QT,
 	NUR_NXPCMD_EASALARMSTREAM,
-	NUR_BLE_EXT, // 0x55
+	NUR_BLE_EXT, // NUR_CMD_ACC_EXT
+	NUR_EXT,
 	NUR_PROPR_LAST
 };
 
@@ -208,6 +214,8 @@ enum {
 	NUR_CMD_GENSETUP,
 	NUR_CMD_READCONT,
 	NUR_CMD_READALL,
+	NUR_CMD_NUR3_CAL,
+	NUR_CMD_FR_EXT,
 	NUR_REG_LAST
 };
 
@@ -215,7 +223,6 @@ enum {
   Standalone and commands for ethernet Sampo
 */
 enum {
-
 	NUR_ETH_BASE = 0xA0,
 	NUR_CMD_STANDALONE_GET_1 = NUR_ETH_BASE,
 	NUR_CMD_STANDALONE_SET_1,
@@ -228,6 +235,15 @@ enum {
 	CMD_GET_BUFFEREDDATA,
 	CMD_ACK_BUFFEREDDATA,
 	NUR_ETH_LAST
+};
+
+/*
+  NASS Commands
+*/
+enum {
+	NASS_BASE = 0xB0,
+	NASS_DATA = NASS_BASE,
+	NASS_LAST
 };
 
 // Internal FLASH Page Size: 256 bytes
@@ -246,6 +262,11 @@ enum {
 #define PACKET_FLAG_UNSOL  (1<<0)
 #define PACKET_FLAG_IRDATA (1<<1)
 #define PACKET_FLAG_ACK    (1<<2)
+#define PACKET_FLAG_ECHO1  (1<<7)
+#define PACKET_FLAG_ECHO_INTERNAL (1<<9)
+#define PACKET_FLAG_ECHO_INTERNAL_EXTERNAL (1<<10)
+#define PACKET_FLAG_ECHO   ((1<<11) | PACKET_FLAG_ECHO_INTERNAL_EXTERNAL | PACKET_FLAG_ECHO_INTERNAL)
+#define PACKET_FLAG_SEQNUM ((1<<15) | (1<<14) | (1<<13) | (1<<12))
 
 #define NUR_MAX_SENSORS		2
 #define NUR_SZ_SENSOR_CONF  2
@@ -261,6 +282,27 @@ enum {
 #define NUR_SENSOR_EVENT_LIGHT    (SENSOR_EVENT_FLAG | LIGHT_EVENT_VALUE)
 
 #define NUR_READERINFO_VERSION1		0x52444901
+
+#define NUR_MAX_SERIAL_LENGTH		(16)
+#define NUR_MAX_NAME_LENGTH			(16)
+#define NUR_MAX_FCCID_LENGTH		(48)
+#define NUR_MAX_HWVER_LENGTH		(8)
+
+#define NUR_VARIANT_FLAG_NONE  		            0
+#define NUR_VARIANT_FLAG_USB_TABLE            (1<<0)
+#define NUR_VARIANT_FLAG_ETH_TABLE	          (1<<1)
+#define NUR_VARIANT_FLAG_STIX		              (1<<2)
+#define _DO_NOT_USE_NUR_VARIANT_FLAG_ONEWATT_	(1<<3) // Removed
+#define _DO_NOT_USE_NUR_VARIANT_FLAG_GRIDANT_	(1<<4) // Removed
+#define NUR_VARIANT_FLAG_ONEWATT	            (1<<5)
+#define NUR_VARIANT_FLAG_BEAMANT	            (1<<6)
+#define NUR_VARIANT_FLAG_MULTIPORT	          (1<<7)
+#define NUR_VARIANT_BEAM_READER_EB            (1<<8)
+#define NUR_VARIANT_BEAM_READER_EB2	          (1<<9)
+#define NUR_VARIANT_AR_LOWGAIN		            (1<<10)
+#define NUR_VARIANT_4PORT			                (1<<11)
+#define NUR_VARIANT_HAS_TEMPSENSOR            (1<<12)
+#define NUR_VARIANT_ZUMTOBEL_READER           (1U<<13)
 
 #define NUR_MAX_SEND_SZ				((2*1024)-1)
 #define NUR_MAX_RCV_SZ				((8*1024)-1)
@@ -558,6 +600,36 @@ struct NUR_CMD_TRACETAG_PARAMS
 	uint8_t maskdata[NUR_MAX_SELMASK];
 } NUR_PACKED;
 
+struct NUR_CMD_PRODUCTION_CFG_PARAMS
+{
+	uint32_t programmingCode;
+	uint32_t configFlags;
+	uint8_t serialLength;
+	uint8_t serial[NUR_MAX_SERIAL_LENGTH];
+	uint8_t altSerialLength;
+	uint8_t altSerial[NUR_MAX_SERIAL_LENGTH];
+	uint8_t nameLength;
+	uint8_t name[NUR_MAX_NAME_LENGTH];
+	uint8_t fccIDLength;
+	uint8_t fccId[NUR_MAX_FCCID_LENGTH];
+} NUR_PACKED;
+
+struct NUR_CMD_PRODUCTION_CFG_PARAMS2
+{
+	uint32_t programmingCode;
+	uint32_t configFlags;
+	uint8_t serialLength;
+	uint8_t serial[NUR_MAX_SERIAL_LENGTH];
+	uint8_t altSerialLength;
+	uint8_t altSerial[NUR_MAX_SERIAL_LENGTH];
+	uint8_t nameLength;
+	uint8_t name[NUR_MAX_NAME_LENGTH];
+	uint8_t fccIDLength;
+	uint8_t fccId[NUR_MAX_FCCID_LENGTH];
+	uint8_t hwVerLength;
+	uint8_t hwVer[NUR_MAX_HWVER_LENGTH];
+} NUR_PACKED;
+
 struct NUR_CMD_SENSORS_PARAMS
 {
 	uint8_t flags;
@@ -792,6 +864,29 @@ struct NUR_DIAG_REPORT
     uint32_t invalidCmds;  /**< Number of invalid (not supported) commands received */
 } NUR_PACKED;
 
+/**
+ * Gen2X configuration
+ * @sa NurApiGetGen2XConfig
+ * @sa NurApiSetGen2XConfig
+*/
+struct NUR_GEN2X_CONFIG
+{
+	uint16_t flags;                 /**< Gen2X control flags. see enum NUR_GEN2X_FLAGS */
+
+	uint8_t inventoryMode;         /**< Inventory mode: 0=Gen2, 1=Gen2X, 2=Hybrid */
+
+	uint8_t scanCodeType;          /**< Scan/ScanId encoding method: 0=Rfu, 1=Antipodal, 2=CCOneHalf, 3=CCThreeQuarters */
+	uint8_t scanCRType;            /**< Scan/ScanId collision resolution: 0=ID32, 1=ID16, 2=StoredCRC, 3=RN16 */
+	uint8_t scanProtectionType;    /**< Scan/ScanId data protection setting: 0=None, 1=Parity, 2=CRC5, 3=CRC5Plus */
+	uint8_t scanIdType;            /**< Scan/ScanId ID setting: 0=NoAckResponse, 1=TMNPlusTSN, 2=Part, 3=Full */
+	uint8_t scanCrypto;            /**< Scan/ScanId Crypto setting: 0=All tags, 1=S=1 tags only */
+
+	uint8_t scanIdAppSize;         /**< ScanId application size: 0=Rfu, 1=24 bits, 2=16 bits, 3=8 bits */
+	uint32_t scanIdAppId;          /**< ScanId AppId setting used to select certain tag population */
+
+	uint32_t protectedModePin;     /**< Protected mode PIN code */
+} NUR_PACKED;
+
 /////////////////////////////////////////////////////////////////////////////
 // RESPONSES
 
@@ -923,7 +1018,36 @@ struct NUR_CMD_DEVCAPS_RESP
 	uint16_t chipVersion;
 	uint16_t moduleType;
 	uint32_t moduleConfigFlags;
-	uint8_t res[SZ_DEVCAPS - 4*sizeof(uint32_t) - 2*sizeof(int) - 7*sizeof(uint16_t)];
+	uint16_t ver2Level;
+
+	uint32_t secChipMajorVersion;
+	uint32_t secChipMinorVersion;
+	uint32_t secChipMaintenanceVersion;
+	uint32_t secChipReleaseVersion;
+
+	uint8_t res[SZ_DEVCAPS - 8*sizeof(uint32_t) - 2*sizeof(int) - 8*sizeof(uint16_t)];
+} NUR_PACKED;
+
+struct NUR_CMD_ETHDEVCONFIG_RESP
+{
+	uint8_t titleLen;
+	char title[32]; //Default "Nordic ID Sampo S1"
+
+	uint32_t version;	//Current Revision (read only)
+	uint8_t ip[4];		//Current IP (Read only)
+	uint8_t mask[4];	//Subnet mask (used in static IP mode)
+	uint8_t gw[4];		//Gateway	(used in static IP)
+
+	uint8_t addrType; //Address type 0=DHCP(default) 1=STATIC
+	uint8_t staticip[4];
+	uint8_t mac[6];   //READ ONLY
+	uint32_t serverPort;//Default 1300
+
+	uint8_t hostmode;	 //Mode: 0=Server (default) 1=Client
+	uint8_t hostip[4]; //Client host IP (if Mode=Client)
+	uint32_t hostPort;	//Client mode port (if Mode=Client)
+
+	uint8_t reserved[8];
 } NUR_PACKED;
 
 struct NUR_CMD_REGIONINFO_RESP
@@ -935,6 +1059,21 @@ struct NUR_CMD_REGIONINFO_RESP
 	uint32_t channelTime;
 	uint8_t nameLen;
 	char name[64];
+} NUR_PACKED;
+
+struct NUR_CMD_IOCHANGE_RESP
+{
+	uint8_t source;  // 1...127 = GPIO, 128-> sensor
+	uint8_t dir;
+} NUR_PACKED;
+
+struct NUR_CMD_TRIGGERREAD_RESP
+{
+	uint8_t source;
+	uint8_t antennaID;
+	char rssi;
+	char scaledRssi;
+	uint8_t epcdata[NUR_MAX_EPC_LENGTH];
 } NUR_PACKED;
 
 #define NUR_CMD_SENSORS_RESP		NUR_CMD_SENSORS_PARAMS
@@ -1083,6 +1222,7 @@ struct NUR_CMD_RESP
 		struct NUR_TUNEEVENT_DATA			tuneeventdata;
 		struct NUR_CMD_PERMALOCK_RD_RESP	permalock;
 		struct NUR_CMD_DIAG_REPORT_RESP     diagreport;
+		struct NUR_GEN2X_CONFIG gen2x;
 
 		uint8_t rawdata[1];
 	};

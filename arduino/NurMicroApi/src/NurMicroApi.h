@@ -429,6 +429,7 @@ enum NUR_RF_PROFILE
 	NUR_RF_PROFILE_HIGHSPEED,
 	NUR_RF_PROFILE_HIGHSPEED_2,
 	NUR_RF_PROFILE_FAST,
+	NUR_RF_PROFILE_AUTOSET,
 	NUR_RF_PROFILE_LAST
 };
 
@@ -641,7 +642,19 @@ enum NUR_DEVCAPS_F1
 	NUR_DC_ANTTUNE		= (1L<<15), 	/**< The antenna or antennas in this device can be tuned. */
 	NUR_DC_CHSCANNER	= (1L<<16),	/**< This module can run channel scan. */
 	NUR_DC_INVREAD		= (1L<<17),	/**< This module can run inventory + read. */
-	NUR_DC_LASTBITF1	= (1L<<18)	/**< Next available bi for future extensions. */
+	NUR_DC_ANTPOWER		= (1L<<18),  /**< This module supports per antenna power setting. */
+	NUR_DC_POWEROFS		= (1L<<19),  /**< This module supports per antenna low power setting offset -1...1. */
+	NUR_DC_BEAMANTENNA	= (1L<<20),  /**< This module supports beam forming antenna. */
+	NUR_DC_FETCHSINGLE	= (1L<<21),  /**< This module supports fetching tags one by one. */
+	NUR_DC_ANTENNAMAP	= (1L<<22),  /**< This module provides antenna mapping information. */
+	NUR_DC_GEN2VER2		= (1L<<23),  /**< The module FW supports Gen2 version 2 at some level. */
+	NUR_DC_RFPROFILE	= (1L<<24),  /**< The module FW supports RF profile setting. */
+	NUR_DC_DIAG		= (1L<<25),	/**< This module FW supports diagnostics commands. */
+	NUR_DC_TAGPHAS		= (1L<<26),	/**< This module FW supports tag phase info. see NUR_OPFLAGS_EN_TAG_PHASE */
+	NUR_DC_SLEEP		= (1L<<27),	/**< This module FW supports sleep. See NUR_SETUP_TO_SLEEP_TIME */
+	NUR_DC_PHASEDIFF	= (1L<<28),	/**< This module FW supports tag phase diff info. see NUR_OPFLAGS_EN_PHASE_DIFF */
+	NUR_DC_GEN2X		= (1L<<29),	/**< The module FW supports impinj Gen2X at some level. */
+	NUR_DC_LASTBITF1	= (1L<<30),	/**< Next available bit for future extensions. */
 };
 
 /** Flag field 1 'all device caps' bitmask. */
@@ -664,7 +677,19 @@ enum NUR_CHIPVER
 	/** Chip version AS3992 */
 	NUR_CHIPVER_AS3992 = 1,
 	/** Chip version AS3993 */
-	NUR_CHIPVER_AS3993 = 2
+	NUR_CHIPVER_AS3993 = 2,
+	/** Chip version R2000 */
+	NUR_CHIPVER_R2000 = 3,
+	/** Chip version R2000D */
+	NUR_CHIPVER_R2000D = 4,
+	/** Chip version E310 */
+	NUR_CHIPVER_E310 = 5,
+	/** Chip version E510 */
+	NUR_CHIPVER_E510 = 6,
+	/** Chip version E710 */
+	NUR_CHIPVER_E710 = 7,
+	/** Chip version E910 */
+	NUR_CHIPVER_E910 = 8
 };
 
 /**
@@ -678,7 +703,54 @@ enum NUR_MODULETYPE
 	/** Module type NUR05WL */
 	NUR_MODULETYPE_NUR05WL = 2,
 	/** Module type NUR05WL2 */
-	NUR_MODULETYPE_NUR05WL2 = 3
+	NUR_MODULETYPE_NUR05WL2 = 3,
+	/** Module type NUR10W (1W module)*/
+	NUR_MODULETYPE_NUR10W = 4,
+	/** Module type NUR2-1W (1W module)*/
+	NUR_MODULETYPE_NUR2_1W = 5,
+	/** Module type NUR2-01W */
+	NUR_MODULETYPE_NUR2_01W = 6,
+	/** Module type NUR3IE-1W */
+	NUR_MODULETYPE_NUR3IE_1W = 7,
+	/** Module type NUR3FR-1W */
+	NUR_MODULETYPE_NUR3FR_1W = 8,
+	/** Module type NUR3MOD-1W */
+	NUR_MODULETYPE_NUR3MOD_1W = 9,
+	/** Module type NUR3IR-1W */
+	NUR_MODULETYPE_NUR3IR_1W = 10,
+	/** Module type NUR3MOD-0W1 */
+	NUR_MODULETYPE_NUR3MOD_0W1 = 11,
+	/** Module type NUR3MOD-0W5 */
+	NUR_MODULETYPE_NUR3MOD_0W5 = 12,
+	/** Module type NUR3IOLINK-1W */
+	NUR_MODULETYPE_NUR3IOLINK_1W = 13,
+	/** Module type NUR3FR26-1W */
+	NUR_MODULETYPE_NUR3FR26_1W = 14
+};
+
+/**
+ * Types of grid antenna tuning.
+ */
+enum NUR_GANT_TUNE
+{
+	/** Fastest, least number of iterations. */
+	GANT_TUNE_FAST = 0,
+	/** Medium number of iterations. */
+	GANT_TUNE_MEDIUM,
+	/** Most number of iterations. */
+	GANT_TUNE_WIDE
+};
+
+/**
+ * WLAN status bits
+ */
+enum WLAN_STATUS
+{
+    STATUS_BIT_CONNECTION = (1<<0),		/**< the device is connected to the AP */
+    STATUS_BIT_STA_CONNECTED = (1<<1),  /**< client is connected to device */
+    STATUS_BIT_IP_ACQUIRED = (1<<2),    /**< the device has acquired an IP */
+    STATUS_BIT_IP_LEASED = (1<<3),      /**< the device has leased an IP */
+    STATUS_BIT_CONNECTION_FAILED = (1<<4), /**< failed to connect to device */
 };
 
 /**
@@ -716,6 +788,23 @@ enum NUR_DIAG_REPORT_FLAGS
     NUR_DIAG_REPORT_TEMP_HIGH = (1<<1), /**< Set in NUR_CMD_DIAG_CFG_PARAMS.flags if module temperature is high. Host application SHOULD stop performing RF operations for a while. */
     NUR_DIAG_REPORT_TEMP_OVER = (1<<2), /**< Set in NUR_CMD_DIAG_CFG_PARAMS.flags if module temperature is over limits. All RF operations will fail with error NUR_ERROR_OVER_TEMP in this stage. */
     NUR_DIAG_REPORT_LOWVOLT = (1<<3),   /**< Set in NUR_CMD_DIAG_CFG_PARAMS.flags if low voltage is detected. All RF operations will fail with error NUR_ERROR_LOW_VOLTAGE in this stage. */
+};
+
+/**
+ * Gen2X control flags.
+ * @sa struct NUR_GEN2X_CONFIG
+ * @sa NurApiGetGen2XConfig
+ * @sa NurApiSetGen2XConfig
+ */
+enum NUR_GEN2X_FLAGS
+{
+    NUR_GEN2X_ENABLE_SCANID         = (1 << 0),     /**< Enable ScanId feature */
+    NUR_GEN2X_ENABLE_TAGFOCUS       = (1 << 1),     /**< Enable TagFocus feature */
+    NUR_GEN2X_ENABLE_FASTID         = (1 << 2),     /**< Enable FastID feature */
+    NUR_GEN2X_ACCEPT_CRC5_CRC5PLUS  = (1 << 3),     /**< Enable accepting both CRC5 and CRC5Plus for CR protection */
+    NUR_GEN2X_POWER_BOOST           = (1 << 4),     /**< Enable gen2v3 power boost feature */
+    NUR_GEN2X_ENABLE_PROTECTED_MODE = (1 << 5),     /**< Enable protected mode feature */
+    NUR_GEN2X_ALL_FLAGS             = 0x3F          /**< All supported flags */
 };
 
 /**
@@ -757,6 +846,8 @@ enum NUR_ERRORCODES
 
 	/** Generic, non-interpreted / unexpected error */
 	NUR_ERROR_GENERAL = 0x10,
+	/** Device wants to have last packet again due to the transfer failure. */
+	NUR_ERROR_RESEND_PACKET,
 
 	/** No tag(s) found */
 	NUR_ERROR_NO_TAG = 0x20,
@@ -785,6 +876,12 @@ enum NUR_ERRORCODES
 
 	/** HW error */
 	NUR_ERROR_READER_HW = 0x60,
+	/** Antenna too bad */
+	NUR_ERROR_BAD_ANTENNA,
+	/** Low voltage */
+	NUR_ERROR_LOW_VOLTAGE,
+	/** Over temperature */
+	NUR_ERROR_OVER_TEMP,
 
 	/** Invalid handle passed to function */
 	NUR_ERROR_INVALID_HANDLE = 0x1000,
@@ -836,11 +933,14 @@ enum NUR_ERRORCODES
 
 #include "NurProtocol.h"
 
-#define NurLog do { } while(0)
 //#define LOGIFERROR(x) if ((x) != NUR_NO_ERROR) printf("ERROR %d @ %s %d\n", (x), __FILE__, __LINE__);
 //#define RETLOGERROR(x) { printf("ERROR %d @ %s %d\n", (x), __FILE__, __LINE__); return (x); }
-#define LOGIFERROR(x) do { } while(0)
-#define RETLOGERROR(x) do { } while(0)
+#ifndef LOGIFERROR
+ #define LOGIFERROR(x) do { } while(0)
+#endif
+#ifndef RETLOGERROR
+ #define RETLOGERROR(x) return (x)
+#endif
 
 
 struct NUR_API_HANDLE;
@@ -1003,7 +1103,7 @@ NUR_API int NURAPICONV NurApiSetConstantChannelIndex(struct NUR_API_HANDLE *hNur
 int NURAPICONV NurApiTraceTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_TRACETAG_PARAMS *params);
 
 #ifdef CONFIG_GENERIC_READ
-NUR_API int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_READ_PARAMS *params, uint8_t *rdBuffer, uint16_t *rdWords);
+NUR_API int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_READ_PARAMS *params, uint8_t *rdBuffer, uint16_t rdBufferLen, uint16_t *rdWords);
 #endif
 
 #ifdef CONFIG_GENERIC_WRITE
@@ -1052,6 +1152,33 @@ int NURAPICONV NurApiProgramBootloader(struct NUR_API_HANDLE *hNurApi, pProgramP
 int NURAPICONV NurApiDiagGetReport(struct NUR_API_HANDLE *hNurApi, uint32_t flags, struct NUR_DIAG_REPORT *report, uint32_t reportSize);
 int NURAPICONV NurApiDiagSetConfig(struct NUR_API_HANDLE *hNurApi, uint32_t flags, uint32_t interval);
 int NURAPICONV NurApiDiagGetConfig(struct NUR_API_HANDLE *hNurApi, uint32_t *flags, uint32_t *interval);
+
+/** @fn int NurApiGetGen2XConfig(struct NUR_API_HANDLE *hNurApi, struct NUR_GEN2X_CONFIG* cfg)
+ *
+ * Get current gen2x config from NUR module.
+ *
+ * @sa NUR_GEN2X_CONFIG, NurApiSetGen2XConfig(), enum NUR_GEN2X_FLAGS
+ *
+ * @param	hNurApi		Handle to valid NurApi object instance.
+ * @param	cfg				Pointer to a buffer that receives current gen2x config.
+ *
+ * @return	Zero when succeeded, On error non-zero error code is returned.
+ */
+int NURAPICONV NurApiGetGen2XConfig(struct NUR_API_HANDLE *hNurApi, struct NUR_GEN2X_CONFIG* cfg);
+
+/** @fn int NurApiSetGen2XConfig(struct NUR_API_HANDLE *hNurApi, struct NUR_GEN2X_CONFIG* cfg)
+ *
+ * Set new gen2x config to NUR module. This will store new setup in volatile memory.
+ * If you need persistent setup, you'll need to call NurApiStoreCurrentSetup()
+ *
+ * @sa NUR_GEN2X_CONFIG, NurApiGetGen2XConfig(), NurApiStoreCurrentSetup()
+ *
+ * @param	hNurApi		Handle to valid NurApi object instance.
+ * @param	cfg				Pointer to a new gen2x config.
+ *
+ * @return	Zero when succeeded, On error non-zero error code is returned.
+ */
+int NURAPICONV NurApiSetGen2XConfig(struct NUR_API_HANDLE *hNurApi, struct NUR_GEN2X_CONFIG* cfg);
 
 #ifndef IMPLEMENT_CRC16
 extern uint16_t NurCRC16(uint16_t crc, uint8_t *buf, uint32_t len);
