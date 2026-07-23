@@ -240,12 +240,16 @@ static uint16_t NurCRC16(uint16_t crc, uint8_t *buf, uint32_t len)
 #define RxHeaderPtr			((struct NUR_HEADER *)RxHeaderDataPtr)
 #define RxPayloadCmdPtr		(RxHeaderDataPtr + (HDR_SIZE)) // + header
 #define RxPayloadDataPtr	(RxHeaderDataPtr + (HDR_SIZE+1)) // + header + cmd
-#define RxPayloadLen		(RxHeaderPtr->payloadlen - 2 - 1 - 1) // - CRC - cmd - status
+// Payload length excluding cmd, status and CRC. Use the clamped respLen set by
+// NurApiHandlePacketData() instead of recomputing from payloadlen: a raw
+// (payloadlen - 4) underflows to a huge value for short (payloadlen < 4) packets.
+#define RxPayloadLen		(hNurApi->respLen)
 
 #define STATE_IDLE 			1
 #define STATE_HDR 			2
 #define STATE_PAYLOAD 		3
 #define STATE_PACKETREADY	4
+#define STATE_RXBUFERROR	5 // rx buffer too small
 
 static uint8_t packetHandlerState = STATE_IDLE;
 
@@ -255,6 +259,13 @@ int NurApiHandlePacketData(struct NUR_API_HANDLE *hNurApi, uint32_t *processPos,
 
 	while ((*processPos) < (*bytesToProcess))
 	{
+		if (hNurApi->RxBufferUsed >= hNurApi->RxBufferLen)
+		{
+			// Buffer overflow, reset state
+			packetHandlerState = STATE_IDLE;
+			hNurApi->RxBufferUsed = 0;
+			return STATE_RXBUFERROR;
+		}
 		hNurApi->RxBuffer[hNurApi->RxBufferUsed++] = trBuf[(*processPos)++];
 
 		switch (packetHandlerState)
@@ -290,6 +301,17 @@ int NurApiHandlePacketData(struct NUR_API_HANDLE *hNurApi, uint32_t *processPos,
 				// Validate checksum
 				if (headerChecksum == RxHeaderPtr->checksum)
 				{
+					// A valid payload needs at least cmd + status + CRC16 (4 bytes).
+					// A smaller payloadlen would underflow the length below and cause
+					// an out-of-bounds read in NurCRC16 / BytesToWord.
+					if (RxHeaderPtr->payloadlen < 4)
+					{
+						// Invalid payload length, return to idle..
+						hNurApi->RxBufferUsed = 0;
+						packetHandlerState = STATE_IDLE;
+						break;
+					}
+
 					// Valid header received, go to payload state
 					packetHandlerState = STATE_PAYLOAD;
 				}
@@ -408,7 +430,7 @@ int NURAPICONV NurApiXchPacket(struct NUR_API_HANDLE *hNurApi, uint8_t cmd, uint
 	    uint32_t bytesOutput = 0;
 		error = NurApiSetupPacket(hNurApi, cmd, payloadLen, 0, &packetLen);
 		if (error != NUR_SUCCESS)
-			return error;		
+			return error;
 
 		// Write packet to module
 		// TODO: Handle fragmented write
@@ -448,15 +470,17 @@ WAITMORE:
 			// Handle incoming data.
 			// NOTE: Data may come in pieces and received buffer may contain unsolicited messages
 			packetState = NurApiHandlePacketData(hNurApi, &processPos, &bytesRead);
-			if (packetState == STATE_PACKETREADY)
-			{
+			if (packetState == STATE_RXBUFERROR) {
+				return NUR_ERROR_BUFFER_TOO_SMALL;
+			}
+			if (packetState == STATE_PACKETREADY) {
 				// We're done
 				break;
 			}
 		}
 	}
 
-	if (packetState != STATE_PACKETREADY || timeout <= 0)
+	if (packetState != STATE_PACKETREADY)
 	{
 		// Packet was not ready within timeout
 		return NUR_ERROR_TR_TIMEOUT;
@@ -620,6 +644,7 @@ int NURAPICONV NurApiGetReaderInfo(struct NUR_API_HANDLE *hNurApi)
 	int error;
 	uint16_t pos;
 	uint8_t *ptr;
+	uint32_t maxLen;
 
 	// Reset response
 	nurMemset(&ri, 0, sizeof(ri));
@@ -636,8 +661,11 @@ int NURAPICONV NurApiGetReaderInfo(struct NUR_API_HANDLE *hNurApi)
 	// Setup read pointers
 	pos = 0;
 	ptr = hNurApi->resp->rawdata;
+	maxLen = hNurApi->respLen;
 
 	// Read reader info version
+	if ( pos + sizeof(ri.version) + sizeof(ri.serialLen) > maxLen )
+		return NUR_ERROR_INVALID_PACKET;
 	ri.version = BytesToDword(&ptr[pos]);
 	if (ri.version == NUR_READERINFO_VERSION1)
 	{
@@ -649,8 +677,10 @@ int NURAPICONV NurApiGetReaderInfo(struct NUR_API_HANDLE *hNurApi)
 		ri.version = 1;
 	}
 
-	// Read serial number len
+	// Read serial number len. Received strings are compacted (not padded)
 	ri.serialLen = ptr[pos++];
+	if ( ri.serialLen > RINFO_SERIAL_LEN || pos + ri.serialLen + sizeof(ri.altSerialLen) > maxLen )
+		return NUR_ERROR_INVALID_PACKET;
 	// Read serial number string
 	nurMemcpy(ri.serial, &ptr[pos], ri.serialLen);
 	pos += ri.serialLen;
@@ -659,24 +689,32 @@ int NURAPICONV NurApiGetReaderInfo(struct NUR_API_HANDLE *hNurApi)
 	{
 		// Version 1 and up ontains ALT serial also
 		ri.altSerialLen = ptr[pos++];
+		if ( ri.altSerialLen > RINFO_ALTSERIAL_LEN || pos + ri.altSerialLen + sizeof(ri.nameLen) > maxLen )
+			return NUR_ERROR_INVALID_PACKET;
 		nurMemcpy(ri.altSerial, &ptr[pos], ri.altSerialLen);
 		pos += ri.altSerialLen;
 	}
 
 	// Read module name len
 	ri.nameLen = ptr[pos++];
+	if ( ri.nameLen > RINFO_NAME_LENGTH || pos + ri.nameLen + sizeof(ri.fccIdLen) > maxLen )
+		return NUR_ERROR_INVALID_PACKET;
 	// Read module name string
 	nurMemcpy(ri.name, &ptr[pos], ri.nameLen);
 	pos += ri.nameLen;
 
 	// Read FCCID len
 	ri.fccIdLen = ptr[pos++];
+	if ( ri.fccIdLen > RINFO_FCCID_LEN || pos + ri.fccIdLen + sizeof(ri.hwVersionLen) > maxLen )
+		return NUR_ERROR_INVALID_PACKET;
 	// Read FCCID string
 	nurMemcpy(ri.fccId, &ptr[pos], ri.fccIdLen);
 	pos += ri.fccIdLen;
 
 	// Read HW version len
 	ri.hwVersionLen = ptr[pos++];
+	if ( ri.hwVersionLen > RINFO_HWVERSION_LEN || pos + ri.hwVersionLen + 8 > maxLen )
+		return NUR_ERROR_INVALID_PACKET;
 	// Read HW version string
 	nurMemcpy(ri.hwVersion, &ptr[pos], ri.hwVersionLen);
 	pos += ri.hwVersionLen;
@@ -714,7 +752,11 @@ int NURAPICONV NurApiGetRegionInfo(struct NUR_API_HANDLE *hNurApi, uint8_t regio
 	if (error == NUR_SUCCESS)
 	{
 		// NULL terminate string
-		hNurApi->resp->regioninfo.name[hNurApi->resp->regioninfo.nameLen] = '\0';
+		uint8_t nameLen = hNurApi->resp->regioninfo.nameLen;
+		if (nameLen >= sizeof(hNurApi->resp->regioninfo.name)) {
+			nameLen = sizeof(hNurApi->resp->regioninfo.name) - 1;
+		}
+		hNurApi->resp->regioninfo.name[nameLen] = '\0';
 	}
 
 	return error;
@@ -752,26 +794,33 @@ int NURAPICONV NurApiGetFWINFO(struct NUR_API_HANDLE *hNurApi, char *buf, uint16
 	return error;
 }
 
-static void SetupGetMember(uint32_t memberFlag, void *memberPtr, int sizeofMember, uint32_t respFlags, uint8_t *dataPtr, uint16_t *dataPos)
+static int SetupGetMember(uint32_t memberFlag, void *memberPtr, int sizeofMember, uint32_t respFlags, uint8_t *dataPtr, uint16_t *dataPos, uint32_t dataLen)
 {
 	if ((respFlags & memberFlag) != 0)
 	{
+		if ((uint32_t)(*dataPos) + (uint32_t)sizeofMember > dataLen) {
+			return NUR_ERROR_INVALID_PACKET;
+		}
 		nurMemcpy(memberPtr, &dataPtr[*dataPos], sizeofMember);
 		*dataPos += sizeofMember;
 	}
+
+	return NUR_SUCCESS;
 }
 
 #ifdef _MSC_VER
-#define GETMEMBER(fl, name) SetupGetMember(fl, &resp.##name, sizeof(resp.##name), flags, ptr, &pos)
+#define GETMEMBER(fl, name) { int r=SetupGetMember(fl, &resp.##name, sizeof(resp.##name), flags, ptr, &pos, hNurApi->respLen); if (r != NUR_SUCCESS) RETLOGERROR(r); }
 #else
-#define GETMEMBER(fl, name) SetupGetMember(fl, &resp.name, sizeof(resp.name), flags, ptr, &pos)
+#define GETMEMBER(fl, name) { int r=SetupGetMember(fl, &resp.name, sizeof(resp.name), flags, ptr, &pos, hNurApi->respLen); if (r != NUR_SUCCESS) RETLOGERROR(r); }
 #endif
 
-static void ParseModuleSetupResponse(struct NUR_API_HANDLE *hNurApi, uint32_t flags)
+static int ParseModuleSetupResponse(struct NUR_API_HANDLE *hNurApi, uint32_t flags)
 {
 	struct NUR_CMD_LOADSETUP_PARAMS resp;
 	uint8_t *ptr = hNurApi->resp->rawdata;
 	uint16_t pos = 0;
+
+	nurMemset(&resp, 0, sizeof(resp));
 
 	// Returned flags
 	resp.flags = flags;
@@ -813,6 +862,8 @@ static void ParseModuleSetupResponse(struct NUR_API_HANDLE *hNurApi, uint32_t fl
 
 	// Copy response back to main response struct
 	nurMemcpy(&hNurApi->resp->loadsetup, &resp, sizeof(resp));
+
+	return NUR_SUCCESS;
 }
 
 static void SetupAddMember(uint32_t memberFlag, void *memberPtr, int sizeofMember, uint32_t paramsFlags, uint8_t *dataPtr, uint16_t *dataPos)
@@ -875,7 +926,9 @@ int NURAPICONV NurApiSetModuleSetup(struct NUR_API_HANDLE *hNurApi, struct NUR_C
 	error = NurApiXchPacket(hNurApi, NUR_CMD_LOADSETUP2, payloadSize, DEF_TIMEOUT);
 	if (error == NUR_SUCCESS || error == NUR_ERROR_INVALID_PARAMETER)
 	{
-		ParseModuleSetupResponse(hNurApi, params->flags);
+		int r = ParseModuleSetupResponse(hNurApi, params->flags);
+		if ( r != NUR_SUCCESS )
+			return r;
 	}
 
 	return error;
@@ -894,7 +947,7 @@ int NURAPICONV NurApiGetModuleSetup(struct NUR_API_HANDLE *hNurApi, uint32_t set
 	error = NurApiXchPacket(hNurApi, NUR_CMD_LOADSETUP2, 4, DEF_TIMEOUT);
 	if (error == NUR_NO_ERROR)
 	{
-		ParseModuleSetupResponse(hNurApi, setupFlags);
+		error = ParseModuleSetupResponse(hNurApi, setupFlags);
 	}
 
 	return error;
@@ -936,6 +989,9 @@ int NURAPICONV NurApiInventoryEx(struct NUR_API_HANDLE *hNurApi,
 		nurMemcpy(TxPayloadDataPtr, params, copySize);
 		payloadSize = copySize;
 
+		if (params->filterCount > NUR_MAX_FILTERS) {
+			RETLOGERROR(NUR_ERROR_INVALID_PARAMETER);
+		}
 		for (n=0; n<params->filterCount; n++)
 		{
 			copySize = 9; // "Header" size.
@@ -974,7 +1030,7 @@ int NURAPICONV NurApiClearTags(struct NUR_API_HANDLE *hNurApi)
 
 int NURAPICONV NurApiStopContinuous(struct NUR_API_HANDLE *hNurApi)
 {
-	return NurApiXchPacket(hNurApi, NUR_CMD_STOPALLCONT, 1, DEF_TIMEOUT);
+	return NurApiXchPacket(hNurApi, NUR_CMD_STOPALLCONT, 0, DEF_TIMEOUT);
 }
 
 int NURAPICONV NurApiSetCustomHoptableEx(struct NUR_API_HANDLE *hNurApi,
@@ -1086,10 +1142,22 @@ int NURAPICONV ParseIdBuffer(struct NUR_API_HANDLE *hNurApi, pFetchTagsFunction 
 		if (blockLen == 0)
 			break;
 
+		// Make sure the whole tag block is within the buffer (malformed/truncated data)
+		if (pos + blockLen > bufferLen) {
+			LOGIFERROR(NUR_ERROR_INVALID_LENGTH);
+			break;
+		}
+
 		if (includeMeta)
 		{
 			if (includeIrData)
 			{
+				// Need at least the metadata block + antenna id
+				if (blockLen < SZ_META_PREPEND_IR + 1) {
+					LOGIFERROR(NUR_ERROR_INVALID_LENGTH);
+					break;
+				}
+
 				// Copy all members at once
 				nurMemcpy(&entry, &buffer[pos], SZ_META_PREPEND_IR);
 				blockLen -= SZ_META_PREPEND_IR;
@@ -1097,6 +1165,12 @@ int NURAPICONV ParseIdBuffer(struct NUR_API_HANDLE *hNurApi, pFetchTagsFunction 
 			}
 			else
 			{
+				// Need at least rssi/scaledRssi/timestamp/freq (8) + pc/channel (3) + antenna id (1)
+				if (blockLen < 8 + 3 + 1) {
+					LOGIFERROR(NUR_ERROR_INVALID_LENGTH);
+					break;
+				}
+
 				// Copy: rssi, scaledRssi, timestamp, freq
 				entry.dataLen = 0;
 				nurMemcpy(&entry, &buffer[pos], 8);
@@ -1119,7 +1193,11 @@ int NURAPICONV ParseIdBuffer(struct NUR_API_HANDLE *hNurApi, pFetchTagsFunction 
 
 		if (includeMeta && includeIrData)
 		{
-			// EPC + data
+			// EPC + data; guard against dataLen exceeding remaining block
+			if (blockLen < entry.dataLen) {
+				LOGIFERROR(NUR_ERROR_INVALID_LENGTH);
+				break;
+			}
 			entry.epcLen = (blockLen - entry.dataLen);
 		}
 		else
@@ -1216,14 +1294,14 @@ int NURAPICONV NurApiTraceTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_TRA
 
 	if (error == NUR_SUCCESS)
 	{
-		// Calculate epc data length
-		hNurApi->resp->tracetag.epcLen = (uint8_t)(RxPayloadLen - 3); // - rssi, scaledRssi, antennaID
+		// Calculate epc data length (guard against short/malformed response)
+		hNurApi->resp->tracetag.epcLen = (RxPayloadLen >= 3) ? (uint8_t)(RxPayloadLen - 3) : 0; // - rssi, scaledRssi, antennaID
 	}
 
 	return error;
 }
 
-static void WriteCommonSingulationBlock(struct NUR_SINGULATED_CMD_PARAMS *params, uint8_t *payloadBuffer, uint16_t *payloadSize)
+static int WriteCommonSingulationBlock(struct NUR_SINGULATED_CMD_PARAMS *params, uint8_t *payloadBuffer, uint16_t *payloadSize)
 {
 	int hdrSize;
 
@@ -1239,10 +1317,17 @@ static void WriteCommonSingulationBlock(struct NUR_SINGULATED_CMD_PARAMS *params
 	{
 		// Singulation block present
 		// Calculate bytes to follow from bit length
-		params->sb.bytestofollow = (uint8_t)(((params->sb.maskbitlen / 8) + ((params->sb.maskbitlen % 8) != 0)));
+		uint16_t maskBytes = (uint16_t)((params->sb.maskbitlen / 8) + ((params->sb.maskbitlen % 8) != 0));
+
+		// Clamp to the mask buffer size: maskbitlen is a uint16_t but maskdata is
+		// only NUR_MAX_SELMASK bytes. Without this, a large maskbitlen would read
+		// past maskdata and leak adjacent memory into the transmitted packet.
+		if (maskBytes > NUR_MAX_SELMASK) {
+			RETLOGERROR(NUR_ERROR_INVALID_PARAMETER);
+		}
 
 		hdrSize = (params->flags & RW_EA1) ? 11 : 7;
-		params->sb.bytestofollow += hdrSize;
+		params->sb.bytestofollow = (uint8_t)(maskBytes + hdrSize);
 
 		PacketByte(payloadBuffer, params->sb.bytestofollow, payloadSize);
 		PacketByte(payloadBuffer, params->sb.bank, payloadSize);
@@ -1252,14 +1337,15 @@ static void WriteCommonSingulationBlock(struct NUR_SINGULATED_CMD_PARAMS *params
 			PacketDword(payloadBuffer, GET_DWORD(params->sb.address32), payloadSize);
 		}
 		PacketWord(payloadBuffer, GET_WORD(params->sb.maskbitlen), payloadSize);
-		PacketBytes(payloadBuffer, params->sb.maskdata, params->sb.bytestofollow - hdrSize, payloadSize);
+		PacketBytes(payloadBuffer, params->sb.maskdata, maskBytes, payloadSize);
 	}
+
+	return NUR_SUCCESS;
 }
 
 #ifdef CONFIG_GENERIC_READ
-int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi,
-							 struct NUR_CMD_READ_PARAMS *params,
-							 uint8_t *rdBuffer, uint16_t *rdWords)
+int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_READ_PARAMS *params,
+                             uint8_t *rdBuffer, uint16_t rdBufferLen, uint16_t *rdWords)
 {
 	int error;
 	uint8_t *payloadBuffer = TxPayloadDataPtr;
@@ -1270,9 +1356,15 @@ int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi,
 	if (rdByteCount > 510 || ((rdByteCount & 1) != 0)) {
 		RETLOGERROR(NUR_ERROR_INVALID_PARAMETER);
 	}
+	if (rdBuffer != NULL && rdBufferLen < rdByteCount) {
+		RETLOGERROR(NUR_ERROR_INVALID_PARAMETER);
+	}
 
 	// Write "Common RW" block and "Singulation" block to payload buffer
-	WriteCommonSingulationBlock((struct NUR_SINGULATED_CMD_PARAMS*)params, payloadBuffer, &payloadSize);
+	error = WriteCommonSingulationBlock((struct NUR_SINGULATED_CMD_PARAMS*)params, payloadBuffer, &payloadSize);
+	if (error != NUR_SUCCESS) {
+		RETLOGERROR(error);
+	}
 
 	// Read block
 	rb->bytestofollow = (params->flags & RW_EA2) ? 10 : 6;
@@ -1295,10 +1387,15 @@ int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi,
 	LOGIFERROR(error);
 
 	if (error == NUR_SUCCESS) {
-		if (rdBuffer)
-			nurMemcpy(rdBuffer, hNurApi->resp->rawdata, RxPayloadLen);
+		uint16_t copyLen = RxPayloadLen;
+		if (copyLen > rdBufferLen) {
+			copyLen = rdBufferLen;
+		}
+		if (rdBuffer != NULL) {
+			nurMemcpy(rdBuffer, hNurApi->resp->rawdata, copyLen);
+		}
 		if (rdWords != NULL) {
-			*rdWords = RxPayloadLen / 2;
+			*rdWords = copyLen / 2;
 		}
 	}
 
@@ -1415,7 +1512,10 @@ int NURAPICONV NurApiWriteTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_WRI
 	}
 
 	// Write "Common RW" block and "Singulation" block to payload buffer
-	WriteCommonSingulationBlock((struct NUR_SINGULATED_CMD_PARAMS*)params, payloadBuffer, &payloadSize);
+	error = WriteCommonSingulationBlock((struct NUR_SINGULATED_CMD_PARAMS*)params, payloadBuffer, &payloadSize);
+	if (error != NUR_SUCCESS) {
+		RETLOGERROR(error);
+	}
 
 	// Write block
 	// Calculate bytes to follow from word count
@@ -1450,7 +1550,10 @@ int NURAPICONV NurApiSetLockRaw(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_L
 	struct NUR_LOCKBLOCK *lb = &params->lb;
 
 	// Write "Common RW" block and "Singulation" block to payload buffer
-	WriteCommonSingulationBlock((struct NUR_SINGULATED_CMD_PARAMS*)params, payloadBuffer, &payloadSize);
+	error = WriteCommonSingulationBlock((struct NUR_SINGULATED_CMD_PARAMS*)params, payloadBuffer, &payloadSize);
+	if (error != NUR_SUCCESS) {
+		RETLOGERROR(error);
+	}
 
 	// Lock block
 	lb->bytestofollow = 4;
@@ -1475,7 +1578,10 @@ int NURAPICONV NurApiKillTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_KILL
 	uint16_t payloadSize = 0;
 
 	// Write "Common RW" block and "Singulation" block to payload buffer
-	WriteCommonSingulationBlock((struct NUR_SINGULATED_CMD_PARAMS*)params, payloadBuffer, &payloadSize);
+	error = WriteCommonSingulationBlock((struct NUR_SINGULATED_CMD_PARAMS*)params, payloadBuffer, &payloadSize);
+	if (error != NUR_SUCCESS) {
+		RETLOGERROR(error);
+	}
 
 	error = NurApiXchPacket(hNurApi, NUR_CMD_KILL, payloadSize, DEF_LONG_TIMEOUT);
 	if (error == NUR_ERROR_G2_TAG_RESP)
@@ -1497,7 +1603,10 @@ int NURAPICONV NurApiPermalock(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_PE
 	struct NUR_PERMALOCKBLOCK* plb = &params->plb;
 
 	// Write "Common RW" block and "Singulation" block to payload buffer
-	WriteCommonSingulationBlock((struct NUR_SINGULATED_CMD_PARAMS*)params, payloadBuffer, &payloadSize);
+	error = WriteCommonSingulationBlock((struct NUR_SINGULATED_CMD_PARAMS*)params, payloadBuffer, &payloadSize);
+	if (error != NUR_SUCCESS) {
+		RETLOGERROR(error);
+	}
 
 	/* R/L, bank, addr (4), range */
 	btf = 1 + 1 + 4 + 1;
@@ -1538,7 +1647,8 @@ int NURAPICONV NurApiScanSingle(struct NUR_API_HANDLE *hNurApi, uint16_t timeout
 
 	if (error == NUR_SUCCESS)
 	{
-		hNurApi->resp->scansingle.epcLen = (uint8_t)(RxPayloadLen - 3);
+		// Calculate epc data length, guarding against short/malformed response
+		hNurApi->resp->scansingle.epcLen = (RxPayloadLen >= 3) ? (uint8_t)(RxPayloadLen - 3) : 0;
 	}
 	return error;
 }
@@ -1563,6 +1673,9 @@ int NURAPICONV NurApiTuneAntenna(struct NUR_API_HANDLE *hNurApi, int antenna, in
 	{
 		if (dBmResults!=NULL)
 		{
+			if (hNurApi->respLen < sizeof(struct NUR_CMD_TUNEANTENNA_RESP))
+				RETLOGERROR(NUR_ERROR_INVALID_LENGTH);
+
 			resp = (struct NUR_CMD_TUNEANTENNA_RESP *)hNurApi->resp->rawdata;
 			for (i=0; i<NR_TUNEBANDS; i++)
 				*dBmResults++ = resp->bands[i].dBm;
@@ -1635,16 +1748,17 @@ int NURAPICONV NurApiModuleRestart(struct NUR_API_HANDLE *hNurApi)
 int NURAPICONV NurApiGetAntennaMap(struct NUR_API_HANDLE *hNurApi, struct NUR_ANTENNA_MAPPING *antennaMap, uint8_t *nrMappings, uint8_t maxnMappings)
 {
 	int error;
-	uint8_t *ptData, antCount;
+	uint8_t *ptData, *ptDataEnd, antCount;
 	struct NUR_ANTMAP_RESP *pMapResp;
 
 	error = NurApiXchPacket(hNurApi, NUR_CMD_ANTENNAMAP, 0, DEF_TIMEOUT);
 	if (error == NUR_NO_ERROR) {
 		ptData = hNurApi->resp->rawdata;
+		ptDataEnd = hNurApi->resp->rawdata + hNurApi->respLen;
 		antCount = *(ptData++);
 
 		if (hNurApi->respLen < 6 || antCount < 1 || antCount > NUR_MAX_ANTENNAS_EX) {
-			return NUR_ERROR_INVALID_LENGTH;
+			return NUR_ERROR_INVALID_PACKET;
 		}
 		if (maxnMappings < antCount) {
 			antCount = maxnMappings;
@@ -1652,8 +1766,16 @@ int NURAPICONV NurApiGetAntennaMap(struct NUR_API_HANDLE *hNurApi, struct NUR_AN
 
 		pMapResp = (struct NUR_ANTMAP_RESP *)(ptData);
 		for (uint8_t ant_i = 0; ant_i < antCount; ++ant_i) {
+			// Make sure the entry header (antennaId + nameLen) is within the response
+			if ((uint8_t *)pMapResp + 2 > ptDataEnd) {
+				return NUR_ERROR_INVALID_PACKET;
+			}
 			if ( pMapResp->nameLen > NUR_MAX_MAPPINGLEN ) {
-				return NUR_ERROR_INVALID_LENGTH;
+				return NUR_ERROR_INVALID_PACKET;
+			}
+			// Make sure the name bytes are within the response
+			if ((uint8_t *)pMapResp + 2 + pMapResp->nameLen > ptDataEnd) {
+				return NUR_ERROR_INVALID_PACKET;
 			}
 
 			antennaMap[ant_i].antennaId = pMapResp->antennaId;

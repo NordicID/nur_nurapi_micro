@@ -933,11 +933,14 @@ enum NUR_ERRORCODES
 
 #include "NurProtocol.h"
 
-#define NurLog do { } while(0)
 //#define LOGIFERROR(x) if ((x) != NUR_NO_ERROR) printf("ERROR %d @ %s %d\n", (x), __FILE__, __LINE__);
 //#define RETLOGERROR(x) { printf("ERROR %d @ %s %d\n", (x), __FILE__, __LINE__); return (x); }
-#define LOGIFERROR(x) do { } while(0)
-#define RETLOGERROR(x) do { } while(0)
+#ifndef LOGIFERROR
+ #define LOGIFERROR(x) do { } while(0)
+#endif
+#ifndef RETLOGERROR
+ #define RETLOGERROR(x) return (x)
+#endif
 
 
 struct NUR_API_HANDLE;
@@ -1100,7 +1103,7 @@ NUR_API int NURAPICONV NurApiSetConstantChannelIndex(struct NUR_API_HANDLE *hNur
 int NURAPICONV NurApiTraceTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_TRACETAG_PARAMS *params);
 
 #ifdef CONFIG_GENERIC_READ
-NUR_API int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_READ_PARAMS *params, uint8_t *rdBuffer, uint16_t *rdWords);
+NUR_API int NURAPICONV NurApiReadTag(struct NUR_API_HANDLE *hNurApi, struct NUR_CMD_READ_PARAMS *params, uint8_t *rdBuffer, uint16_t rdBufferLen, uint16_t *rdWords);
 #endif
 
 #ifdef CONFIG_GENERIC_WRITE
