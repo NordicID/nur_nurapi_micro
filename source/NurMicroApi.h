@@ -27,6 +27,14 @@
 #define _UNUSED(_uuVarName)	(void)_uuVarName
 
 #include <stdint.h>
+
+// Allow build time customization without modifying NurMicroApi
+#ifdef NUR_INCLUDE_CONFIG
+ #define _NUR_INCLUDE_CONFIG_A(x)  <x> // add angled bracket
+ #define _NUR_INCLUDE_CONFIG_EA(x) _NUR_INCLUDE_CONFIG_A(x) // expand angled bracket
+ #include _NUR_INCLUDE_CONFIG_EA(NUR_INCLUDE_CONFIG)
+#endif
+
 #ifndef TRUE
 	#define TRUE 1
 #endif
