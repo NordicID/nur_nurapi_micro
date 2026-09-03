@@ -114,7 +114,7 @@ extern "C" {
 #define NUR_DEFAULT_BAUDRATE	(115200)
 
 /** Maximum number of GPIOs. */
-#define NUR_MAX_GPIO			(7)
+#define NUR_MAX_GPIO			(8)
 
 /** Maximum number of regions. */
 #define NUR_MAX_CONFIG_REGIONS  16
